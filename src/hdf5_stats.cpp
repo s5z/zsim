@@ -215,7 +215,7 @@ class HDF5BackendImpl : public GlobAlloc {
                     1 /*# fields*/, 0 /*# records*/,
                     recordSize, fieldNames, fieldOffsets, fieldTypes,
                     recordsPerWrite /*chunk size, in records, might as well be our aggregation degree*/,
-                    NULL, 0 /*compression*/, NULL);
+                    NULL, 9 /*compression*/, NULL);
             assert(hErrVal == 0);
 
             size_t bufSize = recordsPerWrite*recordSize;

@@ -1112,10 +1112,7 @@ VOID SimEnd() {
 
         info("Dumping termination stats");
         zinfo->trigger = 20000;
-        if (zinfo->periodicStatsBackend) zinfo->periodicStatsBackend->dump(false); //write last phase to periodic backend
-        zinfo->statsBackend->dump(false);
-        zinfo->eventualStatsBackend->dump(false);
-        zinfo->compactStatsBackend->dump(false);
+        for (StatsBackend* backend : *(zinfo->statsBackends)) backend->dump(false /*unbuffered, write out*/);
 
         zinfo->sched->notifyTermination();
     }

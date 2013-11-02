@@ -45,6 +45,7 @@ class EventRecorder;
 class PinCmd;
 class PortVirtualizer;
 class VectorCounter;
+template <typename T> class g_vector;
 
 struct ClockDomainInfo {
     uint64_t realtimeOffsetNs;
@@ -130,10 +131,9 @@ struct GlobSimInfo {
     const char* outputDir; //all the output files mst be dumped here. Stored because complex workloads often change dir, then spawn...
 
     AggregateStat* rootStat;
+    g_vector<StatsBackend*>* statsBackends; // used for termination dumps
     StatsBackend* periodicStatsBackend;
-    StatsBackend* statsBackend; //end-of-sim backend
     StatsBackend* eventualStatsBackend;
-    StatsBackend* compactStatsBackend;
     ProcessStats* processStats;
 
     TimeBreakdownStat* profSimTime;

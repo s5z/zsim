@@ -730,13 +730,14 @@ static void PostInitStats(bool perProcessDir, Config& config) {
         };
 
         zinfo->eventQueue->insert(new PeriodicStatsDumpEvent(zinfo->statsPhaseInterval));
-
+        zinfo->statsBackends->push_back(zinfo->periodicStatsBackend);
     } else {
         zinfo->periodicStatsBackend = NULL;
     }
 
     zinfo->eventualStatsBackend = new HDF5Backend(evStatsFile, zinfo->rootStat, (1 << 17) /* 128KB chunks */, zinfo->skipStatsVectors, false /* don't sum regular aggregates*/);
     zinfo->eventualStatsBackend->dump(true); //must have a first sample
+    zinfo->statsBackends->push_back(zinfo->eventualStatsBackend);
 
     if (zinfo->maxMinInstrs) {
         warn("maxMinInstrs IS DEPRECATED");
@@ -751,9 +752,11 @@ static void PostInitStats(bool perProcessDir, Config& config) {
         }
     }
 
-    zinfo->compactStatsBackend = new HDF5Backend(cmpStatsFile, zinfo->rootStat, 0 /* no aggregation, this is just 1 record */, zinfo->skipStatsVectors, true); //don't dump a first sample.
-
-    zinfo->statsBackend = new TextBackend(statsFile, zinfo->rootStat);
+    // Convenience stats
+    StatsBackend* compactStats = new HDF5Backend(cmpStatsFile, zinfo->rootStat, 0 /* no aggregation, this is just 1 record */, zinfo->skipStatsVectors, true); //don't dump a first sample.
+    StatsBackend* textStats = new TextBackend(statsFile, zinfo->rootStat);
+    zinfo->statsBackends->push_back(compactStats);
+    zinfo->statsBackends->push_back(textStats);
 }
 
 static void InitGlobalStats() {
@@ -775,6 +778,7 @@ static void InitGlobalStats() {
 void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     zinfo = gm_calloc<GlobSimInfo>();
     zinfo->outputDir = gm_strdup(outputDir);
+    zinfo->statsBackends = new g_vector<StatsBackend*>();
 
     Config config(configFile);
 
