@@ -1,0 +1,32 @@
+# -*- mode:python -*-
+
+import os
+Import("env")
+
+commonSrcs = ["config.cpp", "galloc.cpp", "log.cpp", "pin_cmd.cpp"]
+harnessSrcs = ["zsim_harness.cpp", "debug_harness.cpp"]
+
+# By default, we compile all cpp files in libzsim.so. List the cpp files that
+# should be excluded below (one per line and in order, to ease merges)
+excludeSrcs = [
+"fftoggle.cpp",
+]
+excludeSrcs += harnessSrcs
+
+# Build libzsim.so
+globSrcNodes = Glob("*.cpp") + Glob("virt/*.cpp")
+libSrcs = [str(x) for x in globSrcNodes if str(x) not in excludeSrcs]
+libEnv = env.Clone()
+libEnv["CPPFLAGS"] += libEnv["PINCPPFLAGS"]
+libEnv["LINKFLAGS"] += libEnv["PINLINKFLAGS"]
+libEnv["LIBPATH"] += libEnv["PINLIBPATH"]
+libEnv["LIBS"] += libEnv["PINLIBS"]
+libEnv.SharedLibrary("zsim.so", libSrcs)
+
+# Build harness (static to make it easier to run across environments)
+env["LINKFLAGS"] += " --static "
+env["LIBS"] += ["pthread"]
+env.Program("zsim", harnessSrcs + commonSrcs)
+
+# Build additional utilities below
+env.Program("fftoggle", ["fftoggle.cpp"] + commonSrcs)

@@ -1,0 +1,5 @@
+zsim hooks for different programming languages. Use these to control simulation
+(e.g., fast-forwarding). C and C++ programs just need to include zsim-hooks.h.
+Fortran programs need to be linked with libfortran-hooks.a. Java programs can
+use the provided zsim JNI class. Run make run_tests and explore the Makefile
+for more info.
