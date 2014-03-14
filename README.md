@@ -44,30 +44,31 @@ software, and that you send us a citation of your work.
 Setup
 -----
 
-External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5`
+External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0`
 
+**Natively:** If you use a relatively recent Linux distribution:
 1. Clone a fresh copy of the git zsim repository (`git clone <path to zsim repo>`).
 
 2. Download Pin, http://www.pintool.org . Tested with Pin 2.8+ on an x86-64
-   architecture.  Compiler flags are set up for Pin 2.9 on x86-64. To get flags
+   architecture. Compiler flags are set up for Pin 2.9 on x86-64. To get flags
    for other versions, examine the Pin makefile or derive from sample pintools.
    Set the PINPATH environment variable to Pin's base directory.
 
    NOTE: Linux 3.0+ systems require Pin 2.10+, just because Pin does a kernel
-   version check that 3.0 fails.
-
-   NOTE 2: Use Pin 2.12 with Sandy/Ivy Bridge systems, earlier Pin versions
-   have strange performance regressions on this machine (extremely low IPC).
+   version check that 3.0 fails. Use Pin 2.12 with Sandy/Ivy Bridge systems,
+   earlier Pin versions have strange performance regressions on this machine
+   (extremely low IPC).
 
 3. zsim requires some additional libraries. If they are not installed in your
    system, you will need to download and build them:
 
-  3.1 libconfig, http://www.hyperrealm.com/libconfig . To install locally,
-      untar, run `./configure --prefix=<libconfig install path> && make install`.
-      Then define the env var `LIBCONFIGPATH=<libconfig install path>`. 
+  3.1 libconfig, http://www.hyperrealm.com/libconfig. You may use the system's
+      package if it's recent enough, or build your own. To install locally, untar,
+      run `./configure --prefix=<libconfig install path> && make install`.  Then
+      define the env var `LIBCONFIGPATH=<libconfig install path>`.
 
-  3.2 libhdf5, http://www.hdfgroup.org (v1.8.4 path 1 or higher). The
-      SConstruct file assumes it is installed in the system.
+  3.2 libhdf5, http://www.hdfgroup.org (v1.8.4 path 1 or higher), and libelfg0.
+      The SConstruct file assumes these are installed in the system.
 
   3.3 (OPTIONAL) polarssl (currently used just for their SHA-1 hash function),
       http://www.polarssl.org Install locally as in 3.1 and define the env var
@@ -79,9 +80,13 @@ External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5`
   3.4 (OPTIONAL) DRAMSim2 for main memory simulation. Build locally and define
       the env var DRAMSIMPATH as in 3.1 and 3.3.
 
-4. Compile zsim: `scons -j16`
+4. In some distributions you may need to make minor changes to the host
+   configuration to support large shmem segments and ptrace. See the notes
+   below for more details.
 
-5. Launch a test run: `./build/opt/zsim tests/simple.cfg`
+5. Compile zsim: `scons -j16`
+
+6. Launch a test run: `./build/opt/zsim tests/simple.cfg`
 
 For more compilation options, run scons --help. You can build debug, optimized
 and release variants of the simulator (--d, --o, --r options). Optimized (opt)
@@ -91,7 +96,28 @@ code with --p. These improve simulation performance with OOO cores by about
 
 NOTE: zsim uses C++11 features available in `gcc >=4.6` (such as range-based for
 loops, strictly typed enums, lambdas, and type inference). Older version of gcc
-will not work. zsim can also be built with `icc` (see the `SConstruct` file). 
+will not work. zsim can also be built with `icc` (see the `SConstruct` file).
+
+**Using a virtual machine:** If you use another OS, can't make system-wide
+configuration changes, or just want to test zsim without modifying your system,
+you can run zsim on a Linux VM. We have included a vagrant configuration file
+(http://vagrantup.com) that will provision an Ubuntu 12.04 VM to run zsim.
+You can also follow this Vagrantfile to figure out how to setup zsim on an
+Ubuntu system. Note that **zsim will be much slower on a VM** because it relies
+on fast context-switching, so we don't recommend this for purposes other than
+testing and development. Assuming you have vagrant installed (`sudo apt-get
+install vagrant` on Ubuntu or Debian), follow these:
+` mkdir zsim_vm
+ cd zsim_vm
+ <copy Vagrantfile from misc/Vagrantfile>
+ vagrant up  # downloads the base VM and installs all dependencies
+ vagrant ssh  # you'll ssh into the vm`
+
+Inside the VM, you can use zsim with:
+` git clone <path to zsim repo>
+ cd zsim
+ scons -j16
+ ./build/opt/zsim tests/simple.cfg`
 
 
 Notes
