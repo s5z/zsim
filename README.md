@@ -97,18 +97,22 @@ will not work. zsim can also be built with `icc` (see the `SConstruct` file).
 Notes
 -----
 
-**Accuracy:** While we have validated zsim against a real system, you should be
-aware that we sometimes sacrifice some accuracy for speed and simplicity. The
-ISCA 2013 paper details the possible sources of inaccuracy.  Despite our
-validation efforts, if you are using zsim with workloads or architectures that
-are significantly different from ours, you should not blindly trust these
-results. Also, zsim can be configured with varying degrees of accuracy, which
-may be OK in some cases but not others (e.g., longer bound phases to reduce
-overheads are often OK if your application has little communication, but not
-with fine-grained parallelism and synchronization). Finally, in some cases, you
-will need to modify the code, and for some purposes, zsim is just not the right
-tool. In any case, we strongly recommend validating your baseline configuration
-and workloads against a real machine.
+**Accuracy & validation:** While we have validated zsim against a real system,
+you should be aware that we sometimes sacrifice some accuracy for speed and
+simplicity. The ISCA 2013 paper details the possible sources of inaccuracy.
+Despite our validation efforts, if you are using zsim with workloads or
+architectures that are significantly different from ours, you should not
+blindly trust these results. Also, zsim can be configured with varying degrees
+of accuracy, which may be OK in some cases but not others (e.g., longer bound
+phases to reduce overheads are often OK if your application has little
+communication, but not with fine-grained parallelism and synchronization).
+Finally, in some cases you will need to modify the code to model what you want,
+and for some purposes, zsim is just not the right tool. In any case, we
+strongly recommend validating your baseline configuration and workloads against
+a real machine.
+
+In addition to the results in the zsim paper,
+http://zsim.csail.mit.edu/validation has updated validation results.
 
 **Memory Management:** zsim can simulate multiple processes, which introduces some
 complexities in memory management. Each Pin process uses SysV IPC shared
