@@ -45,10 +45,19 @@ def buildSim(cppFlags, dir, type, pgo=None):
     # NOTE: These flags are for the 28/02/2011 2.9 PIN kit (rev39599). Older versions will not build.
     # NOTE (dsm 10 Jan 2013): Tested with Pin 2.10 thru 2.12 as well
     # NOTE: Original Pin flags included -fno-strict-aliasing, but zsim does not do type punning
-    env["CPPFLAGS"] += " -g -std=c++0x -Wall -Wno-unknown-pragmas -fomit-frame-pointer -fno-stack-protector -MMD -DBIGARRAY_MULTIPLIER=1 -DUSING_XED -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX"
-    env["CPPPATH"] = [joinpath(PINPATH , "extras/xed2-intel64/include"),
-            joinpath(PINPATH , "source/include"), joinpath(PINPATH , "source/include/gen"),
-            joinpath(PINPATH , "extras/components/include")]
+    env["CPPFLAGS"] += " -g -std=c++0x -Wall -Wno-unknown-pragmas -fomit-frame-pointer -fno-stack-protector"
+    env["CPPFLAGS"] += " -MMD -DBIGARRAY_MULTIPLIER=1 -DUSING_XED -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX"
+
+    # Pin 2.12+ kits have changed the layout of includes, detect whether we need
+    # source/include/ or source/include/pin/
+    pinInclDir = joinpath(PINPATH, "source/include/")
+    if not os.path.exists(joinpath(pinInclDir, "pin.H")):
+        pinInclDir = joinpath(pinInclDir, "pin")
+        assert os.path.exists(joinpath(pinInclDir, "pin.H"))
+
+    env["CPPPATH"] = [joinpath(PINPATH, "extras/xed2-intel64/include"),
+            pinInclDir, joinpath(pinInclDir, "gen"),
+            joinpath(PINPATH, "extras/components/include")]
 
     # Perform trace logging? 
     ##env["CPPFLAGS"] += " -D_LOG_TRACE_=1"
@@ -64,14 +73,14 @@ def buildSim(cppFlags, dir, type, pgo=None):
     env["PINCPPFLAGS"] = " -DMT_SAFE_LOG "
 
     # PIN-specific libraries
-    env["PINLINKFLAGS"] = " -Wl,--hash-style=sysv -Wl,-Bsymbolic -Wl,--version-script=" + joinpath(PINPATH , "source/include/pintool.ver") 
+    env["PINLINKFLAGS"] = " -Wl,--hash-style=sysv -Wl,-Bsymbolic -Wl,--version-script=" + joinpath(pinInclDir, "pintool.ver")
     
     # To prime system libs, we include /usr/lib and /usr/lib/x86_64-linux-gnu
     # first in lib path. In particular, this solves the issue that, in some
     # systems, Pin's libelf takes precedence over the system's, but it does not
     # include symbols that we need or it's a different variant (we need
     # libelfg0-dev in Ubuntu systems)
-    env["PINLIBPATH"] = ["/usr/lib", "/usr/lib/x86_64-linux-gnu", joinpath(PINPATH , "extras/xed2-intel64/lib"),
+    env["PINLIBPATH"] = ["/usr/lib", "/usr/lib/x86_64-linux-gnu", joinpath(PINPATH, "extras/xed2-intel64/lib"),
             joinpath(PINPATH, "intel64/lib"), joinpath(PINPATH, "intel64/lib-ext")]
 
     # Libdwarf is provided in static and shared variants, Ubuntu only provides
