@@ -32,6 +32,13 @@
 #include "libconfig.h++"
 #include "log.h"
 
+// We need minor specializations to work with older versions of libconfig
+#if defined(LIBCONFIGXX_VER_MAJOR) && defined(LIBCONFIGXX_VER_MINOR) && defined(LIBCONFIGXX_VER_REVISION)
+#define LIBCONFIG_VERSION (LIBCONFIGXX_VER_MAJOR*10000 +  LIBCONFIGXX_VER_MINOR*100 + LIBCONFIGXX_VER_REVISION)
+#else
+#define LIBCONFIG_VERSION 0
+#endif
+
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -47,7 +54,14 @@ Config::Config(const char* inFile) {
     } catch (libconfig::FileIOException fioe) {
         panic("Input config file %s could not be read", inFile);
     } catch (libconfig::ParseException pe) {
-        panic("Input config file %s could not be parsed, line %d, error: %s", pe.getFile(), pe.getLine(), pe.getError());
+#if LIBCONFIG_VERSION >= 10408 // 1.4.8
+        const char* peFile = pe.getFile();
+#else
+        // Old versions of libconfig don't have libconfig::ParseException::getFile()
+        // Using inFile is typically OK, but won't be accurate with multi-file configs (includes)
+        const char* peFile = inFile;
+#endif
+        panic("Input config file %s could not be parsed, line %d, error: %s", peFile, pe.getLine(), pe.getError());
     }
 }
 
