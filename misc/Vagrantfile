@@ -1,0 +1,43 @@
+#-*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant::Config.run do |config|
+  config.vm.box = "precise64"
+  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+
+  config.vm.customize ["modifyvm", :id, "--memory", 4096]
+  config.vm.customize ["modifyvm", :id, "--cpus", 4]
+
+  config.vm.provision :shell, :inline => <<-SH
+    # Packages
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get -y update
+    # apt-get -y dist-upgrade
+    
+    # zsim dependencies
+    apt-get -y install build-essential g++ git scons
+    apt-get -y install libelfg0-dev libhdf5-serial-dev libconfig++-dev
+
+    # dependencies for zsim's Fortran and Java hooks (misc/hooks)
+    apt-get -y install gfortran openjdk-7-jdk
+
+    # other packages
+    apt-get -y install vim
+
+    # Get Pin & set PINPATH
+    #PINVER="pin-2.12-58423-gcc.4.4.7-linux"
+    PINVER="pin-2.13-62732-gcc.4.4.7-linux"
+    if [ ! -d ~vagrant/${PINVER} ]; then
+        echo "Downloading Pin version ${PINVER}"
+        sudo -u vagrant wget -nc -nv http://software.intel.com/sites/landingpage/pintool/downloads/${PINVER}.tar.gz
+        sudo -u vagrant tar xzf ${PINVER}.tar.gz
+        echo "export PINPATH=~/${PINVER}" >> ~vagrant/.bashrc
+    fi
+
+    # Configure system flags
+    sysctl -w kernel.shmmax=1073741824
+    sysctl -w kernel.yama.ptrace_scope=0
+
+    # Run git clone <zsim repo URL> && cd zsim && scons -j16 && you're ready to go
+  SH
+end
