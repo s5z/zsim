@@ -171,6 +171,7 @@ DRAMSimMemory::DRAMSimMemory(string& dramTechIni, string& dramSystemIni, string&
     panic("Cannot use DRAMSimMemory, zsim was not compiled with DRAMSim");
 }
 
+void DRAMSimMemory::initStats(AggregateStat* parentStat) { panic("???"); }
 uint64_t DRAMSimMemory::access(MemReq& req) { panic("???"); return 0; }
 uint32_t DRAMSimMemory::tick(uint64_t cycle) { panic("???"); return 0; }
 void DRAMSimMemory::enqueue(DRAMSimAccEvent* ev, uint64_t cycle) { panic("???"); }
