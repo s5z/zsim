@@ -56,7 +56,8 @@
 #include "profile_stats.h"
 #include "scheduler.h"
 #include "stats.h"
-//#include "syscall_funcs.h"
+#include "trace_driver.h"
+#include "trace_writer.h"
 #include "virt/virt.h"
 
 //#include <signal.h> //can't include this, conflicts with PIN's
@@ -1113,8 +1114,9 @@ VOID SimEnd() {
         info("Dumping termination stats");
         zinfo->trigger = 20000;
         for (StatsBackend* backend : *(zinfo->statsBackends)) backend->dump(false /*unbuffered, write out*/);
+        for (TraceWriter* t : *(zinfo->traceWriters)) delete t;  // flushes trace writer
 
-        zinfo->sched->notifyTermination();
+        if (zinfo->sched) zinfo->sched->notifyTermination();
     }
 
     //Uncomment when debugging termination races, which can be rare because they are triggered by threads of a dying process
@@ -1520,7 +1522,7 @@ int main(int argc, char *argv[]) {
 
     info("procMask: 0x%lx", procMask);
 
-    zinfo->sched->processCleanup(procIdx);
+    if (zinfo->sched) zinfo->sched->processCleanup(procIdx);
 
     VirtCaptureClocks(false);
     FFIInit();
@@ -1550,8 +1552,21 @@ int main(int argc, char *argv[]) {
     //OK, screw it. Launch this on a separate thread, and forget about signals... the caller will set a shared memory var. PIN is hopeless with signal instrumentation on multithreaded processes!
     PIN_SpawnInternalThread(FFThread, NULL, 64*1024, NULL);
 
-    //Never returns
-    PIN_StartProgram();
+    // Start trace-driven or exec-driven sim
+    if (zinfo->traceDriven) {
+        info("Running trace-driven simulation");
+        while (!zinfo->terminationConditionMet && zinfo->traceDriver->executePhase()) {
+            // info("Phase done");
+            EndOfPhaseActions();
+            zinfo->numPhases++;
+            zinfo->globPhaseCycles += zinfo->phaseLength;
+        }
+        info("Finished trace-driven simulation");
+        SimEnd();
+    } else {
+        // Never returns
+        PIN_StartProgram();
+    }
     return 0;
 }
 

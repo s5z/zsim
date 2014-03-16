@@ -45,6 +45,8 @@ class EventRecorder;
 class PinCmd;
 class PortVirtualizer;
 class VectorCounter;
+class TraceWriter;
+class TraceDriver;
 template <typename T> class g_vector;
 
 struct ClockDomainInfo {
@@ -170,6 +172,13 @@ struct GlobSimInfo {
     lock_t pauseLocks[256]; //per-process pauses
     volatile bool globalPauseFlag; //if set, pauses simulation on phase end
     volatile bool externalTermPending;
+
+    // Trace writers (stored globally because they need to be deleted when the simulation ends)
+    g_vector<TraceWriter*>* traceWriters;
+
+    // Trace-driven simulation (no cores)
+    bool traceDriven;
+    TraceDriver* traceDriver;
 };
 
 

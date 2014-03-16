@@ -23,28 +23,33 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
 
-/* Simulator constants/limits go here, defined by macros */
+/* Simple program to dump a trace. 
+ */
 
-// PIN 2.9 (rev39599) can't do more than 2048 threads...
-#define MAX_THREADS (2048)
+#include <queue>
+#include <stdio.h>
 
-// How many children caches can each cache track? Note each bank is a separate child. This impacts sharer bit-vector sizes.
-#define MAX_CACHE_CHILDREN (256)
-//#define MAX_CACHE_CHILDREN (1024)
+#include "access_tracing.h"
+#include "memory_hierarchy.h" //to translate access type to strings
+#include "trace_reader.h"
 
-// Complex multiprocess runs need multiple clocks, and multiple port domains
-#define MAX_CLOCK_DOMAINS (64)
-#define MAX_PORT_DOMAINS (64)
+int main(int argc, const char* argv[]) {
+    InitLog(""); //no log header
+    if (argc != 2) {
+        info("Prints an access trace");
+        info("Usage: %s <trace>", argv[0]);
+        exit(1);
+    }
 
-//Maximum IPC of any implemented core. This is used for adaptive events and will not fail silently if you define new, faster processors.
-//If you use it, make sure it does not fail silently if violated.
-#define MAX_IPC (4)
+    AccessTraceReader tr(argv[1]);
+    
+    info("%12s %6s %6s %20s %10s", "Cycle", "Src", "Type", "LineAddr", "Latency");
+    while(!tr.empty()) {
+        AccessRecord acc = tr.read();
+        info("%12ld %6d   %s %20p %10d", acc.reqCycle, acc.childId, AccessTypeName(acc.type), (uint64_t*)acc.lineAddr, acc.latency);
+    }
 
-// Trace files need a consistent magic number. If you change the trace format, be sure to increment the magic number!
-#define TRACEFILE_MAGICNUMBER (0xFFFFDEADBEEF0001)
-
-#endif  // CONSTANTS_H_
+    return 0;
+}
 

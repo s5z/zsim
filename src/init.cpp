@@ -67,6 +67,8 @@
 #include "timing_cache.h"
 #include "timing_core.h"
 #include "timing_event.h"
+#include "trace_driver.h"
+#include "tracing_cache.h"
 #include "virt/port_virtualizer.h"
 #include "weave_md1_mem.h" //validation, could be taken out...
 #include "zsim.h"
@@ -79,6 +81,14 @@ extern void EndOfPhaseActions(); //in zsim.cpp
  */
 
 BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, uint32_t bankSize, bool isTerminal, uint32_t domain) {
+    string type = config.get<const char*>(prefix + "type", "Simple");
+    // Shortcut for TraceDriven type
+    if (type == "TraceDriven") {
+        assert(zinfo->traceDriven);
+        assert(isTerminal);
+        return new TraceDriverProxyCache(name);
+    }
+
     uint32_t lineSize = zinfo->lineSize;
     assert(lineSize > 0); //avoid config deps
     if (bankSize % lineSize != 0) panic("%s: Bank size must be a multiple of line size", name.c_str());
@@ -243,12 +253,11 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
     uint32_t accLat = (isTerminal)? 0 : latency; //terminal caches has no access latency b/c it is assumed accLat is hidden by the pipeline
     uint32_t invLat = latency;
 
-    //Type and inclusion
-    string type = config.get<const char*>(prefix + "type", "Simple");
+    // Inclusion?
     bool nonInclusiveHack = config.get<bool>(prefix + "nonInclusiveHack", false);
     if (nonInclusiveHack) assert(type == "Simple" && !isTerminal);
 
-    //Finally, build the cache
+    // Finally, build the cache
     Cache* cache;
     CC* cc;
     if (isTerminal) {
@@ -265,6 +274,11 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
             uint32_t tagLat = config.get<uint32_t>(prefix + "tagLat", 5);
             uint32_t timingCandidates = config.get<uint32_t>(prefix + "timingCandidates", candidates);
             cache = new TimingCache(numLines, cc, array, rp, accLat, invLat, mshrs, tagLat, ways, timingCandidates, domain, name);
+        } else if (type == "Tracing") {
+            g_string traceFile = config.get<const char*>(prefix + "traceFile","");
+            if (traceFile.empty()) traceFile = g_string(zinfo->outputDir) + "/" + name + ".trace";
+            info("XXX %s", traceFile.c_str());
+            cache = new TracingCache(numLines, cc, array, rp, accLat, invLat, traceFile, name);
         } else {
             panic("Invalid cache type %s", type.c_str());
         }
@@ -550,129 +564,152 @@ static void InitSystem(Config& config) {
     unordered_map<string, uint32_t> assignedCaches;
     for (const char* grp : cacheGroupNames) if (childMap.count(grp) == 0) assignedCaches[grp] = 0;
 
-    //Instantiate the cores
-    vector<const char*> coreGroupNames;
-    unordered_map <string, vector<Core*>> coreMap;
+    if (!zinfo->traceDriven) {
+        //Instantiate the cores
+        vector<const char*> coreGroupNames;
+        unordered_map <string, vector<Core*>> coreMap;
+        config.subgroups("sys.cores", coreGroupNames);
 
-    config.subgroups("sys.cores", coreGroupNames);
+        uint32_t coreIdx = 0;
+        for (const char* group : coreGroupNames) {
+            if (parentMap.count(group)) panic("Core group name %s is invalid, a cache group already has that name", group);
 
-    uint32_t coreIdx = 0;
-    for (const char* group : coreGroupNames) {
-        if (parentMap.count(group)) panic("Core group name %s is invalid, a cache group already has that name", group);
+            coreMap[group] = vector<Core*>();
 
-        coreMap[group] = vector<Core*>();
+            string prefix = string("sys.cores.") + group + ".";
+            uint32_t cores = config.get<uint32_t>(prefix + "cores", 1);
+            string type = config.get<const char*>(prefix + "type", "Simple");
 
-        string prefix = string("sys.cores.") + group + ".";
-        uint32_t cores = config.get<uint32_t>(prefix + "cores", 1);
-        string type = config.get<const char*>(prefix + "type", "Simple");
-
-        //Build the core group
-        union {
-            SimpleCore* simpleCores;
-            TimingCore* timingCores;
-            OOOCore* oooCores;
-            NullCore* nullCores;
-        };
-        if (type == "Simple") {
-            simpleCores = gm_memalign<SimpleCore>(CACHE_LINE_BYTES, cores);
-        } else if (type == "Timing") {
-            timingCores = gm_memalign<TimingCore>(CACHE_LINE_BYTES, cores);
-        } else if (type == "OOO") {
-            oooCores = gm_memalign<OOOCore>(CACHE_LINE_BYTES, cores);
-            zinfo->oooDecode = true; //enable uop decoding, this is false by default, must be true if even one OOO cpu is in the system
-        } else if (type == "Null") {
-            nullCores = gm_memalign<NullCore>(CACHE_LINE_BYTES, cores);
-        } else {
-            panic("%s: Invalid core type %s", group, type.c_str());
-        }
-
-        if (type != "Null") {
-            string icache = config.get<const char*>(prefix + "icache");
-            string dcache = config.get<const char*>(prefix + "dcache");
-
-            if (!assignedCaches.count(icache)) panic("%s: Invalid icache parameter %s", group, icache.c_str());
-            if (!assignedCaches.count(dcache)) panic("%s: Invalid dcache parameter %s", group, dcache.c_str());
-
-            for (uint32_t j = 0; j < cores; j++) {
-                stringstream ss;
-                ss << group << "-" << j;
-                g_string name(ss.str().c_str());
-                Core* core;
-
-                //Get the caches
-                CacheGroup& igroup = *cMap[icache];
-                CacheGroup& dgroup = *cMap[dcache];
-
-                if (assignedCaches[icache] >= igroup.size()) {
-                    panic("%s: icache group %s (%ld caches) is fully used, can't connect more cores to it", name.c_str(), icache.c_str(), igroup.size());
-                }
-                FilterCache* ic = dynamic_cast<FilterCache*>(igroup[assignedCaches[icache]][0]);
-                assert(ic);
-                ic->setSourceId(coreIdx);
-                ic->setFlags(MemReq::IFETCH | MemReq::NOEXCL);
-                assignedCaches[icache]++;
-
-                if (assignedCaches[dcache] >= dgroup.size()) {
-                    panic("%s: dcache group %s (%ld caches) is fully used, can't connect more cores to it", name.c_str(), dcache.c_str(), dgroup.size());
-                }
-                FilterCache* dc = dynamic_cast<FilterCache*>(dgroup[assignedCaches[dcache]][0]);
-                assert(dc);
-                dc->setSourceId(coreIdx);
-                assignedCaches[dcache]++;
-
-                //Build the core
-                if (type == "Simple") {
-                    core = new (&simpleCores[j]) SimpleCore(ic, dc, name);
-                } else if (type == "Timing") {
-                    uint32_t domain = j*zinfo->numDomains/cores;
-                    TimingCore* tcore = new (&timingCores[j]) TimingCore(ic, dc, domain, name);
-                    zinfo->eventRecorders[coreIdx] = tcore->getEventRecorder();
-                    zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
-                    core = tcore;
-                } else {
-                    assert(type == "OOO");
-                    OOOCore* ocore = new (&oooCores[j]) OOOCore(ic, dc, name);
-                    zinfo->eventRecorders[coreIdx] = ocore->getEventRecorder();
-                    zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
-                    core = ocore;
-                }
-                coreMap[group].push_back(core);
-                coreIdx++;
+            //Build the core group
+            union {
+                SimpleCore* simpleCores;
+                TimingCore* timingCores;
+                OOOCore* oooCores;
+                NullCore* nullCores;
+            };
+            if (type == "Simple") {
+                simpleCores = gm_memalign<SimpleCore>(CACHE_LINE_BYTES, cores);
+            } else if (type == "Timing") {
+                timingCores = gm_memalign<TimingCore>(CACHE_LINE_BYTES, cores);
+            } else if (type == "OOO") {
+                oooCores = gm_memalign<OOOCore>(CACHE_LINE_BYTES, cores);
+                zinfo->oooDecode = true; //enable uop decoding, this is false by default, must be true if even one OOO cpu is in the system
+            } else if (type == "Null") {
+                nullCores = gm_memalign<NullCore>(CACHE_LINE_BYTES, cores);
+            } else {
+                panic("%s: Invalid core type %s", group, type.c_str());
             }
-        } else {
-            assert(type == "Null");
-            for (uint32_t j = 0; j < cores; j++) {
-                stringstream ss;
-                ss << group << "-" << j;
-                g_string name(ss.str().c_str());
-                Core* core = new (&nullCores[j]) NullCore(name);
-                coreMap[group].push_back(core);
-                coreIdx++;
+
+            if (type != "Null") {
+                string icache = config.get<const char*>(prefix + "icache");
+                string dcache = config.get<const char*>(prefix + "dcache");
+
+                if (!assignedCaches.count(icache)) panic("%s: Invalid icache parameter %s", group, icache.c_str());
+                if (!assignedCaches.count(dcache)) panic("%s: Invalid dcache parameter %s", group, dcache.c_str());
+
+                for (uint32_t j = 0; j < cores; j++) {
+                    stringstream ss;
+                    ss << group << "-" << j;
+                    g_string name(ss.str().c_str());
+                    Core* core;
+
+                    //Get the caches
+                    CacheGroup& igroup = *cMap[icache];
+                    CacheGroup& dgroup = *cMap[dcache];
+
+                    if (assignedCaches[icache] >= igroup.size()) {
+                        panic("%s: icache group %s (%ld caches) is fully used, can't connect more cores to it", name.c_str(), icache.c_str(), igroup.size());
+                    }
+                    FilterCache* ic = dynamic_cast<FilterCache*>(igroup[assignedCaches[icache]][0]);
+                    assert(ic);
+                    ic->setSourceId(coreIdx);
+                    ic->setFlags(MemReq::IFETCH | MemReq::NOEXCL);
+                    assignedCaches[icache]++;
+
+                    if (assignedCaches[dcache] >= dgroup.size()) {
+                        panic("%s: dcache group %s (%ld caches) is fully used, can't connect more cores to it", name.c_str(), dcache.c_str(), dgroup.size());
+                    }
+                    FilterCache* dc = dynamic_cast<FilterCache*>(dgroup[assignedCaches[dcache]][0]);
+                    assert(dc);
+                    dc->setSourceId(coreIdx);
+                    assignedCaches[dcache]++;
+
+                    //Build the core
+                    if (type == "Simple") {
+                        core = new (&simpleCores[j]) SimpleCore(ic, dc, name);
+                    } else if (type == "Timing") {
+                        uint32_t domain = j*zinfo->numDomains/cores;
+                        TimingCore* tcore = new (&timingCores[j]) TimingCore(ic, dc, domain, name);
+                        zinfo->eventRecorders[coreIdx] = tcore->getEventRecorder();
+                        zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
+                        core = tcore;
+                    } else {
+                        assert(type == "OOO");
+                        OOOCore* ocore = new (&oooCores[j]) OOOCore(ic, dc, name);
+                        zinfo->eventRecorders[coreIdx] = ocore->getEventRecorder();
+                        zinfo->eventRecorders[coreIdx]->setSourceId(coreIdx);
+                        core = ocore;
+                    }
+                    coreMap[group].push_back(core);
+                    coreIdx++;
+                }
+            } else {
+                assert(type == "Null");
+                for (uint32_t j = 0; j < cores; j++) {
+                    stringstream ss;
+                    ss << group << "-" << j;
+                    g_string name(ss.str().c_str());
+                    Core* core = new (&nullCores[j]) NullCore(name);
+                    coreMap[group].push_back(core);
+                    coreIdx++;
+                }
             }
         }
-    }
 
-    //Check that all the terminal caches are fully connected
-    for (const char* grp : cacheGroupNames) {
-        if (childMap.count(grp) == 0 && assignedCaches[grp] != cMap[grp]->size()) {
-            panic("%s: Terminal cache group not fully connected, %ld caches, %d assigned", grp, cMap[grp]->size(), assignedCaches[grp]);
+        //Check that all the terminal caches are fully connected
+        for (const char* grp : cacheGroupNames) {
+            if (childMap.count(grp) == 0 && assignedCaches[grp] != cMap[grp]->size()) {
+                panic("%s: Terminal cache group not fully connected, %ld caches, %d assigned", grp, cMap[grp]->size(), assignedCaches[grp]);
+            }
         }
+
+        //Populate global core info
+        assert(zinfo->numCores == coreIdx);
+        zinfo->cores = gm_memalign<Core*>(CACHE_LINE_BYTES, zinfo->numCores);
+        coreIdx = 0;
+        for (const char* group : coreGroupNames) for (Core* core : coreMap[group]) zinfo->cores[coreIdx++] = core;
+
+        //Init stats: cores
+        for (const char* group : coreGroupNames) {
+            AggregateStat* groupStat = new AggregateStat(true);
+            groupStat->init(gm_strdup(group), "Core stats");
+            for (Core* core : coreMap[group]) core->initStats(groupStat);
+            zinfo->rootStat->append(groupStat);
+        }
+    } else {  // trace-driven: create trace driver and proxy caches
+        vector<TraceDriverProxyCache*> proxies;
+        for (const char* grp : cacheGroupNames) {
+            if (childMap.count(grp) == 0) {
+                for (vector<BaseCache*> cv : *cMap[grp]) {
+                    assert(cv.size() == 1);
+                    TraceDriverProxyCache* proxy = dynamic_cast<TraceDriverProxyCache*>(cv[0]);
+                    assert(proxy);
+                    proxies.push_back(proxy);
+                }
+            }
+        }
+
+        //FIXME: For now, we assume we are driving a single-bank LLC
+        string traceFile = config.get<const char*>("sim.traceFile");
+        string retraceFile = config.get<const char*>("sim.retraceFile", ""); //leave empty to not retrace
+        zinfo->traceDriver = new TraceDriver(traceFile, retraceFile, proxies,
+                config.get<bool>("sim.useSkews", true), // incorporate skews in to playback and simulator results, not only the output trace
+                config.get<bool>("sim.playPuts", true),
+                config.get<bool>("sim.playAllGets", true));
+        zinfo->traceDriver->initStats(zinfo->rootStat);
     }
 
-    //Populate global core info
-    assert(zinfo->numCores == coreIdx);
-    zinfo->cores = gm_memalign<Core*>(CACHE_LINE_BYTES, zinfo->numCores);
-    coreIdx = 0;
-    for (const char* group : coreGroupNames) for (Core* core : coreMap[group]) zinfo->cores[coreIdx++] = core;
-
-    //Init stats: cores, caches, mem
-    for (const char* group : coreGroupNames) {
-        AggregateStat* groupStat = new AggregateStat(true);
-        groupStat->init(gm_strdup(group), "Core stats");
-        for (Core* core : coreMap[group]) core->initStats(groupStat);
-        zinfo->rootStat->append(groupStat);
-    }
-
+    //Init stats: caches, mem
     for (const char* group : cacheGroupNames) {
         AggregateStat* groupStat = new AggregateStat(true);
         groupStat->init(gm_strdup(group), "Cache stats");
@@ -795,25 +832,33 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
 
     PreInitStats();
 
-    //Get the number of cores
-    //TODO: There is some duplication with the core creation code. This should be fixed eventually.
-    uint32_t numCores = 0;
-    vector<const char*> groups;
-    config.subgroups("sys.cores", groups);
-    for (const char* group : groups) {
-        uint32_t cores = config.get<uint32_t>(string("sys.cores.") + group + ".cores", 1);
-        numCores += cores;
-    }
+    zinfo->traceDriven = config.get<bool>("sim.traceDriven", false);
 
-    if (numCores == 0) panic("Config must define some core classes in sys.cores; sys.numCores is deprecated");
-    zinfo->numCores = numCores;
-    assert(numCores <= MAX_THREADS); //TODO: Is there any reason for this limit?
+    if (zinfo->traceDriven) {
+        zinfo->numCores = 0;
+    } else {
+        // Get the number of cores
+        // TODO: There is some duplication with the core creation code. This should be fixed eventually.
+        uint32_t numCores = 0;
+        vector<const char*> groups;
+        config.subgroups("sys.cores", groups);
+        for (const char* group : groups) {
+            uint32_t cores = config.get<uint32_t>(string("sys.cores.") + group + ".cores", 1);
+            numCores += cores;
+        }
+
+        if (numCores == 0) panic("Config must define some core classes in sys.cores; sys.numCores is deprecated");
+        zinfo->numCores = numCores;
+        assert(numCores <= MAX_THREADS); //TODO: Is there any reason for this limit?
+    }
 
     zinfo->numDomains = config.get<uint32_t>("sim.domains", 1);
     uint32_t numSimThreads = config.get<uint32_t>("sim.contentionThreads", MAX((uint32_t)1, zinfo->numDomains/2)); //gives a bit of parallelism, TODO tune
     zinfo->contentionSim = new ContentionSim(zinfo->numDomains, numSimThreads);
     zinfo->contentionSim->initStats(zinfo->rootStat);
-    zinfo->eventRecorders = gm_calloc<EventRecorder*>(numCores);
+    zinfo->eventRecorders = gm_calloc<EventRecorder*>(zinfo->numCores);
+
+    zinfo->traceWriters = new g_vector<TraceWriter*>();
 
     // Global simulation values
     zinfo->numPhases = 0;
@@ -846,13 +891,17 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
 
     zinfo->eventQueue = new EventQueue(); //must be instantiated before the memory hierarchy
 
-    //Build the scheduler
-    uint32_t parallelism = config.get<uint32_t>("sim.parallelism", 2*sysconf(_SC_NPROCESSORS_ONLN));
-    if (parallelism < zinfo->numCores) info("Limiting concurrent threads to %d", parallelism);
-    assert(parallelism > 0); //jeez...
+    if (!zinfo->traceDriven) {
+        //Build the scheduler
+        uint32_t parallelism = config.get<uint32_t>("sim.parallelism", 2*sysconf(_SC_NPROCESSORS_ONLN));
+        if (parallelism < zinfo->numCores) info("Limiting concurrent threads to %d", parallelism);
+        assert(parallelism > 0); //jeez...
 
-    uint32_t schedQuantum = config.get<uint32_t>("sim.schedQuantum", 10000); //phases
-    zinfo->sched = new Scheduler(EndOfPhaseActions, parallelism, zinfo->numCores, schedQuantum);
+        uint32_t schedQuantum = config.get<uint32_t>("sim.schedQuantum", 10000); //phases
+        zinfo->sched = new Scheduler(EndOfPhaseActions, parallelism, zinfo->numCores, schedQuantum);
+    } else {
+        zinfo->sched = NULL;
+    }
 
     zinfo->blockingSyscalls = config.get<bool>("sim.blockingSyscalls", false);
 
@@ -885,7 +934,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     InitSystem(config);
 
     //Sched stats (deferred because of circular deps)
-    zinfo->sched->initStats(zinfo->rootStat);
+    if (zinfo->sched) zinfo->sched->initStats(zinfo->rootStat);
 
     zinfo->processStats = new ProcessStats(zinfo->rootStat);
 

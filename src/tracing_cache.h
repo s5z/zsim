@@ -23,28 +23,22 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
+#ifndef __TRACING_CACHE_H__
+#define __TRACING_CACHE_H__
 
-/* Simulator constants/limits go here, defined by macros */
+#include "access_tracing.h"
+#include "cache.h"
 
-// PIN 2.9 (rev39599) can't do more than 2048 threads...
-#define MAX_THREADS (2048)
+class TracingCache : public Cache {
+    private:
+        g_string tracefile;
+        AccessTraceWriter* atw;
+        lock_t traceLock;
 
-// How many children caches can each cache track? Note each bank is a separate child. This impacts sharer bit-vector sizes.
-#define MAX_CACHE_CHILDREN (256)
-//#define MAX_CACHE_CHILDREN (1024)
+    public:
+        TracingCache(uint32_t _numLines, CC* _cc, CacheArray* _array, ReplPolicy* _rp, uint32_t _accLat, uint32_t _invLat, g_string& _tracefile, g_string& _name);
+        void setChildren(const g_vector<BaseCache*>& children, Network* network);
+        uint64_t access(MemReq& req);
+};
 
-// Complex multiprocess runs need multiple clocks, and multiple port domains
-#define MAX_CLOCK_DOMAINS (64)
-#define MAX_PORT_DOMAINS (64)
-
-//Maximum IPC of any implemented core. This is used for adaptive events and will not fail silently if you define new, faster processors.
-//If you use it, make sure it does not fail silently if violated.
-#define MAX_IPC (4)
-
-// Trace files need a consistent magic number. If you change the trace format, be sure to increment the magic number!
-#define TRACEFILE_MAGICNUMBER (0xFFFFDEADBEEF0001)
-
-#endif  // CONSTANTS_H_
-
+#endif

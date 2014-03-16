@@ -10,6 +10,8 @@ harnessSrcs = ["zsim_harness.cpp", "debug_harness.cpp"]
 # should be excluded below (one per line and in order, to ease merges)
 excludeSrcs = [
 "fftoggle.cpp",
+"dumptrace.cpp",
+"sorttrace.cpp",
 ]
 excludeSrcs += harnessSrcs
 
@@ -30,3 +32,5 @@ env.Program("zsim", harnessSrcs + commonSrcs)
 
 # Build additional utilities below
 env.Program("fftoggle", ["fftoggle.cpp"] + commonSrcs)
+env.Program("dumptrace", ["dumptrace.cpp", "trace_reader.cpp", "memory_hierarchy.cpp"] + commonSrcs)
+env.Program("sorttrace", ["sorttrace.cpp", "trace_reader.cpp", "trace_writer.cpp"] + commonSrcs)

@@ -23,28 +23,42 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
+#ifndef __TRACE_READER_H__
+#define __TRACE_READER_H__
 
-/* Simulator constants/limits go here, defined by macros */
+#include <iostream>
+#include <fstream>
+#include "log.h"
 
-// PIN 2.9 (rev39599) can't do more than 2048 threads...
-#define MAX_THREADS (2048)
+/* Simple trace reader with some error checking. Note that this is process-local,
+ * and intended to be used in trace-driven single-process simulations.
+ */
 
-// How many children caches can each cache track? Note each bank is a separate child. This impacts sharer bit-vector sizes.
-#define MAX_CACHE_CHILDREN (256)
-//#define MAX_CACHE_CHILDREN (1024)
+class TraceReader {
+    private:
+        std::ifstream trace;
+        std::string filename;
+        uint64_t records;
+        uint64_t nextRecord;
+    public:
+        TraceReader(std::string fname);
+        ~TraceReader();
 
-// Complex multiprocess runs need multiple clocks, and multiple port domains
-#define MAX_CLOCK_DOMAINS (64)
-#define MAX_PORT_DOMAINS (64)
+        inline uint64_t read() {
+            assert(nextRecord < records);
+            uint64_t res = 0;
+            trace.read((char*)&res, sizeof(uint64_t));
+            nextRecord++;
+            return res;
+        }
 
-//Maximum IPC of any implemented core. This is used for adaptive events and will not fail silently if you define new, faster processors.
-//If you use it, make sure it does not fail silently if violated.
-#define MAX_IPC (4)
+        inline uint64_t getNumRecords() const {
+            return records;
+        }
 
-// Trace files need a consistent magic number. If you change the trace format, be sure to increment the magic number!
-#define TRACEFILE_MAGICNUMBER (0xFFFFDEADBEEF0001)
+        inline bool empty() const {
+            return (nextRecord >= records);
+        }
+};
 
-#endif  // CONSTANTS_H_
-
+#endif /*__TRACE_READER_H__*/

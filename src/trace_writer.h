@@ -23,28 +23,33 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
+#ifndef __TRACE_WRITER_H__
+#define __TRACE_WRITER_H__
 
-/* Simulator constants/limits go here, defined by macros */
+#include "log.h"
+#include "galloc.h"
+#include "g_std/g_string.h"
 
-// PIN 2.9 (rev39599) can't do more than 2048 threads...
-#define MAX_THREADS (2048)
+/* A simple, 64b heavily buffered writer to dump traces out */
 
-// How many children caches can each cache track? Note each bank is a separate child. This impacts sharer bit-vector sizes.
-#define MAX_CACHE_CHILDREN (256)
-//#define MAX_CACHE_CHILDREN (1024)
+// Buffer size in 64-bit words (note it's gm-allocated)
+#define TRACEWRITER_BUFSZ (2*1024*1024) // 2M 64b words --> 16MB
 
-// Complex multiprocess runs need multiple clocks, and multiple port domains
-#define MAX_CLOCK_DOMAINS (64)
-#define MAX_PORT_DOMAINS (64)
+class TraceWriter : public GlobAlloc {
+    private:
+        uint64_t buf[TRACEWRITER_BUFSZ];
+        uint64_t elems;
+        g_string filename;
+    public:
+        TraceWriter(g_string& file);
+        ~TraceWriter();
 
-//Maximum IPC of any implemented core. This is used for adaptive events and will not fail silently if you define new, faster processors.
-//If you use it, make sure it does not fail silently if violated.
-#define MAX_IPC (4)
+        inline void write(uint64_t w) {
+            buf[elems++] = w;
+            if (unlikely(elems == TRACEWRITER_BUFSZ)) flush();
+        }
 
-// Trace files need a consistent magic number. If you change the trace format, be sure to increment the magic number!
-#define TRACEFILE_MAGICNUMBER (0xFFFFDEADBEEF0001)
+        void flush();
+};
 
-#endif  // CONSTANTS_H_
-
+#endif /*__TRACER_H__*/

@@ -181,7 +181,10 @@ static void PopulateLevel(Config& config, const std::string& prefix, std::vector
         uint64_t dumpInstrs = config.get<uint64_t>(p_ss.str() +  ".dumpInstrs", 0);
         uint32_t restarts = config.get<uint32_t>(p_ss.str() +  ".restarts", 0);
         g_string syscallBlacklistRegex = config.get<const char*>(p_ss.str() +  ".syscallBlacklistRegex", ".*");
-        g_vector<bool> mask(ParseMask(config.get<const char*>(p_ss.str() +  ".mask", DefaultMaskStr().c_str()), zinfo->numCores));
+        g_vector<bool> mask;
+        if (!zinfo->traceDriven) {
+            mask = ParseMask(config.get<const char*>(p_ss.str() +  ".mask", DefaultMaskStr().c_str()), zinfo->numCores);
+        }  //  else leave mask empty, no cores
         g_vector<uint64_t> ffiPoints(ParseList<uint64_t>(config.get<const char*>(p_ss.str() +  ".ffiPoints", "")));
 
         if (dumpInstrs) {
