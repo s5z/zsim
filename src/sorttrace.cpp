@@ -37,8 +37,6 @@
 
 #include "access_tracing.h"
 #include "galloc.h"
-#include "trace_reader.h"
-#include "trace_writer.h"
 
 using namespace std;
 

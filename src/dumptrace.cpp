@@ -23,16 +23,14 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-/* Simple program to dump a trace. 
- */
+/* Simple program to dump a trace */
 
 #include <queue>
 #include <stdio.h>
 
 #include "access_tracing.h"
-#include "memory_hierarchy.h" //to translate access type to strings
-#include "trace_reader.h"
+#include "galloc.h"
+#include "memory_hierarchy.h"  // to translate access type to strings
 
 int main(int argc, const char* argv[]) {
     InitLog(""); //no log header
@@ -52,4 +50,3 @@ int main(int argc, const char* argv[]) {
 
     return 0;
 }
-

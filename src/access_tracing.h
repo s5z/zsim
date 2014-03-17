@@ -23,13 +23,11 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __ACCESS_TRACING_H__
-#define __ACCESS_TRACING_H__
+#ifndef ACCESS_TRACING_H_
+#define ACCESS_TRACING_H_
 
 #include "g_std/g_string.h"
 #include "memory_hierarchy.h"
-//#include "trace_reader.h"
-//#include "trace_writer.h"
 
 /* HDF5-based classes read and write address traces in a consistent format */
 
@@ -100,5 +98,4 @@ class AccessTraceWriter : public GlobAlloc {
         void dump(bool cont);
 };
 
-#endif /*__ACCESS_TRACING_H__*/
-
+#endif  // _ACCESS_TRACING_H
