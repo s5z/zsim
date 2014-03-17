@@ -25,6 +25,13 @@ libEnv["LIBPATH"] += libEnv["PINLIBPATH"]
 libEnv["LIBS"] += libEnv["PINLIBS"]
 libEnv.SharedLibrary("zsim.so", libSrcs)
 
+# Build tracing utilities (need hdf5 & dynamic linking)
+traceEnv = env.Clone()
+traceEnv["LIBS"] += ["hdf5", "hdf5_hl"]
+traceEnv["OBJSUFFIX"] += "t"
+traceEnv.Program("dumptrace", ["dumptrace.cpp", "access_tracing.cpp", "memory_hierarchy.cpp"] + commonSrcs)
+traceEnv.Program("sorttrace", ["sorttrace.cpp", "access_tracing.cpp"] + commonSrcs)
+
 # Build harness (static to make it easier to run across environments)
 env["LINKFLAGS"] += " --static "
 env["LIBS"] += ["pthread"]
@@ -32,5 +39,3 @@ env.Program("zsim", harnessSrcs + commonSrcs)
 
 # Build additional utilities below
 env.Program("fftoggle", ["fftoggle.cpp"] + commonSrcs)
-env.Program("dumptrace", ["dumptrace.cpp", "trace_reader.cpp", "memory_hierarchy.cpp"] + commonSrcs)
-env.Program("sorttrace", ["sorttrace.cpp", "trace_reader.cpp", "trace_writer.cpp"] + commonSrcs)

@@ -42,7 +42,7 @@ TraceDriver::TraceDriver(std::string filename, std::string retraceFilename, std:
     if (retraceFilename != "") { //we're doing retracing with the new skews
         g_string fname(retraceFilename.c_str());
         atw = new AccessTraceWriter(fname, numChildren);
-        zinfo->traceWriters->push_back(atw->getTraceWriter());
+        zinfo->traceWriters->push_back(atw);
     } else {
         atw = NULL;
     }

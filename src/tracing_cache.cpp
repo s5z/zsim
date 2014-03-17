@@ -36,7 +36,7 @@ void TracingCache::setChildren(const g_vector<BaseCache*>& children, Network* ne
     Cache::setChildren(children, network);
     //We need to initialize the trace writer here because it needs the number of children
     atw = new AccessTraceWriter(tracefile, children.size());
-    zinfo->traceWriters->push_back(atw->getTraceWriter()); //register it so that it gets flushed when the simulation ends
+    zinfo->traceWriters->push_back(atw); //register it so that it gets flushed when the simulation ends
 }
 
 uint64_t TracingCache::access(MemReq& req) {

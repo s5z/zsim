@@ -858,7 +858,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     zinfo->contentionSim->initStats(zinfo->rootStat);
     zinfo->eventRecorders = gm_calloc<EventRecorder*>(zinfo->numCores);
 
-    zinfo->traceWriters = new g_vector<TraceWriter*>();
+    zinfo->traceWriters = new g_vector<AccessTraceWriter*>();
 
     // Global simulation values
     zinfo->numPhases = 0;

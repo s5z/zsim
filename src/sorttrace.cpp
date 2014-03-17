@@ -113,7 +113,8 @@ int main(int argc, const char* argv[]) {
     assert(readRecords == totalRecords);
 
     delete tr;
-    delete tw; //flushes it
+    tw->dump(false); //flushes it
+    delete tw;
     return 0;
 }
 

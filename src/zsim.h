@@ -45,7 +45,7 @@ class EventRecorder;
 class PinCmd;
 class PortVirtualizer;
 class VectorCounter;
-class TraceWriter;
+class AccessTraceWriter;
 class TraceDriver;
 template <typename T> class g_vector;
 
@@ -174,7 +174,7 @@ struct GlobSimInfo {
     volatile bool externalTermPending;
 
     // Trace writers (stored globally because they need to be deleted when the simulation ends)
-    g_vector<TraceWriter*>* traceWriters;
+    g_vector<AccessTraceWriter*>* traceWriters;
 
     // Trace-driven simulation (no cores)
     bool traceDriven;

@@ -40,6 +40,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include "access_tracing.h"
 #include "constants.h"
 #include "contention_sim.h"
 #include "core.h"
@@ -57,7 +58,6 @@
 #include "scheduler.h"
 #include "stats.h"
 #include "trace_driver.h"
-#include "trace_writer.h"
 #include "virt/virt.h"
 
 //#include <signal.h> //can't include this, conflicts with PIN's
@@ -1114,7 +1114,7 @@ VOID SimEnd() {
         info("Dumping termination stats");
         zinfo->trigger = 20000;
         for (StatsBackend* backend : *(zinfo->statsBackends)) backend->dump(false /*unbuffered, write out*/);
-        for (TraceWriter* t : *(zinfo->traceWriters)) delete t;  // flushes trace writer
+        for (AccessTraceWriter* t : *(zinfo->traceWriters)) t->dump(false);  // flushes trace writer
 
         if (zinfo->sched) zinfo->sched->notifyTermination();
     }
