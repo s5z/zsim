@@ -277,7 +277,6 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
         } else if (type == "Tracing") {
             g_string traceFile = config.get<const char*>(prefix + "traceFile","");
             if (traceFile.empty()) traceFile = g_string(zinfo->outputDir) + "/" + name + ".trace";
-            info("XXX %s", traceFile.c_str());
             cache = new TracingCache(numLines, cc, array, rp, accLat, invLat, traceFile, name);
         } else {
             panic("Invalid cache type %s", type.c_str());
