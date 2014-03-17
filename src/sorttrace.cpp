@@ -53,7 +53,7 @@ int main(int argc, const char* argv[]) {
         exit(1);
     }
 
-    gm_init(32<<20 /*32 MB --- only TraceWriter uses this, should be enough*/);
+    gm_init(32<<20 /*32 MB --- should be enough*/);
 
     AccessTraceReader* tr = new AccessTraceReader(argv[1]);
     uint32_t numChildren = tr->getNumChildren();

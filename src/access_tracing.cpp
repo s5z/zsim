@@ -71,12 +71,13 @@ void AccessTraceReader::nextChunk() {
     curFrameRecord += max;
 
     if (curFrameRecord < numRecords) {
+        cur = 0;
         max = MIN(PT_CHUNKSIZE, numRecords - curFrameRecord);
         hid_t fid = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         if (fid == H5I_INVALID_HID) panic("Could not open HDF5 file %s", fname.c_str());
         hid_t table = H5PTopen(fid, "accs");
         if (table == H5I_INVALID_HID) panic("Could not open HDF5 packet table");
-        H5PTread_packets(table, 0, max, buf);
+        H5PTread_packets(table, curFrameRecord, max, buf);
         H5PTclose(table);
         H5Fclose(fid);
     } else {

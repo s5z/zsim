@@ -67,6 +67,7 @@ class AccessTraceReader {
         uint64_t getNumRecords() const {return numRecords;}
 
         inline AccessRecord read() {
+            assert(cur < max);
             PackedAccessRecord& pr = buf[cur++];
             AccessRecord rec = {pr.lineAddr, pr.reqCycle, pr.latency, pr.childId, (AccessType) pr.type};
             if (unlikely(cur == max)) nextChunk();
