@@ -43,8 +43,4 @@
 //If you use it, make sure it does not fail silently if violated.
 #define MAX_IPC (4)
 
-// Trace files need a consistent magic number. If you change the trace format, be sure to increment the magic number!
-#define TRACEFILE_MAGICNUMBER (0xFFFFDEADBEEF0001)
-
 #endif  // CONSTANTS_H_
-
