@@ -138,7 +138,7 @@ void DRAMSimMemory::enqueue(DRAMSimAccEvent* ev, uint64_t cycle) {
 
 void DRAMSimMemory::DRAM_read_return_cb(uint32_t id, uint64_t addr, uint64_t memCycle) {
     std::multimap<uint64_t, DRAMSimAccEvent*>::iterator it = inflightRequests.find(addr);
-    assert(it != inflightRequests.end());
+    assert((it != inflightRequests.end()));
     DRAMSimAccEvent* ev = it->second;
 
     uint32_t lat = curCycle+1 - ev->sCycle;

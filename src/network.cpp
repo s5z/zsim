@@ -50,8 +50,8 @@ Network::Network(const char* filename) {
         string s1 = src + " " + dst;
         string s2 = dst + " " + src;
 
-        assert(delayMap.find(s1) == delayMap.end());
-        assert(delayMap.find(s2) == delayMap.end());
+        assert((delayMap.find(s1) == delayMap.end()));
+        assert((delayMap.find(s2) == delayMap.end()));
 
         delayMap[s1] = delay;
         delayMap[s2] = delay;

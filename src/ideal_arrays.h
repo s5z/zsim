@@ -101,7 +101,7 @@ class IdealLRUArray : public CacheArray {
 
             //Update addr mapping for lineId
             lineMap.erase(e->lineAddr);
-            assert(lineMap.find(lineAddr) == lineMap.end());
+            assert((lineMap.find(lineAddr) == lineMap.end()));
             e->lineAddr = lineAddr;
             lineMap[lineAddr] = lineId;
 
@@ -271,7 +271,7 @@ class IdealLRUPartArray : public CacheArray {
         void postinsert(const Address lineAddr, const MemReq* req, uint32_t lineId) {
             //Update addr mapping for lineId
             lineMap.erase(lineAddrs[lineId]);
-            assert(lineMap.find(lineAddr) == lineMap.end());
+            assert((lineMap.find(lineAddr) == lineMap.end()));
             lineAddrs[lineId] = lineAddr;
             lineMap[lineAddr] = lineId;
 

@@ -215,7 +215,7 @@ class Scheduler : public GlobAlloc, public Callee {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
             //info("[G %d] Start", gid);
-            assert(gidMap.find(gid) == gidMap.end());
+            assert((gidMap.find(gid) == gidMap.end()));
             // Get pid and tid straight from the OS
             // - SYS_gettid because glibc does not implement gettid()
             // - SYS_getpid because after a fork (where zsim calls ThreadStart),
@@ -230,7 +230,7 @@ class Scheduler : public GlobAlloc, public Callee {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
             //info("[G %d] Finish", gid);
-            assert(gidMap.find(gid) != gidMap.end());
+            assert((gidMap.find(gid) != gidMap.end()));
             ThreadInfo* th = gidMap[gid];
             gidMap.erase(gid);
 

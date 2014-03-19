@@ -78,7 +78,7 @@ uint64_t TraceDriver::invalidate(uint32_t childId, Address lineAddr, InvType typ
     assert(childId < numChildren);
     std::unordered_map<Address, MESIState>& cStore = children[childId].cStore;
     std::unordered_map<Address, MESIState>::iterator it = cStore.find(lineAddr);
-    assert(it != cStore.end());
+    assert((it != cStore.end()));
     *reqWriteback = (it->second == M);
     if (type == INVX) {
         it->second = S;
