@@ -120,7 +120,7 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
     if ((1u << setBits) != numSets) panic("%s: Number of sets must be a power of two (you specified %d sets)", name.c_str(), numSets);
 
     //Hash function
-    HashFamily* hf = NULL;
+    HashFamily* hf = nullptr;
     string hashType = config.get<const char*>(prefix + "array.hash", (arrayType == "Z")? "H3" : "None"); //zcaches must be hashed by default
     if (numHashes) {
         if (hashType == "None") {
@@ -141,7 +141,7 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
 
     //Replacement policy
     string replType = config.get<const char*>(prefix + "repl.type", (arrayType == "IdealLRUPart")? "IdealLRUPart" : "LRU");
-    ReplPolicy* rp = NULL;
+    ReplPolicy* rp = nullptr;
 
     if (replType == "LRU" || replType == "LRUNoSh") {
         bool sharersAware = (replType == "LRU") && !isTerminal;
@@ -168,7 +168,7 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
         //Partition mapper
         // TODO: One partition mapper per cache (not bank).
         string partMapper = config.get<const char*>(prefix + "repl.partMapper", "Core");
-        PartMapper* pm = NULL;
+        PartMapper* pm = nullptr;
         if (partMapper == "Core") {
             pm = new CorePartMapper(zinfo->numCores); //NOTE: If the cache is not fully shared, trhis will be inefficient...
         } else if (partMapper == "InstrData") {
@@ -228,7 +228,7 @@ BaseCache* BuildCacheBank(Config& config, const string& prefix, g_string& name, 
 
 
     //Alright, build the array
-    CacheArray* array = NULL;
+    CacheArray* array = nullptr;
     if (arrayType == "SetAssoc") {
         array = new SetAssocArray(numLines, ways, rp, hf);
     } else if (arrayType == "Z") {
@@ -303,7 +303,7 @@ MemObject* BuildMemoryController(Config& config, uint32_t lineSize, uint32_t fre
     //Latency
     uint32_t latency = (type == "DDR")? -1 : config.get<uint32_t>("sys.mem.latency", 100);
 
-    MemObject* mem = NULL;
+    MemObject* mem = nullptr;
     if (type == "Simple") {
         mem = new SimpleMemory(latency, name);
     } else if (type == "MD1") {
@@ -417,7 +417,7 @@ static void InitSystem(Config& config) {
 
     //If a network file is specificied, build a Network
     string networkFile = config.get<const char*>("sys.networkFile", "");
-    Network* network = (networkFile != "")? new Network(networkFile.c_str()) : NULL;
+    Network* network = (networkFile != "")? new Network(networkFile.c_str()) : nullptr;
 
     //Build the caches
     vector<const char*> cacheGroupNames;
@@ -768,7 +768,7 @@ static void PostInitStats(bool perProcessDir, Config& config) {
         zinfo->eventQueue->insert(new PeriodicStatsDumpEvent(zinfo->statsPhaseInterval));
         zinfo->statsBackends->push_back(zinfo->periodicStatsBackend);
     } else {
-        zinfo->periodicStatsBackend = NULL;
+        zinfo->periodicStatsBackend = nullptr;
     }
 
     zinfo->eventualStatsBackend = new HDF5Backend(evStatsFile, zinfo->rootStat, (1 << 17) /* 128KB chunks */, zinfo->skipStatsVectors, false /* don't sum regular aggregates*/);
@@ -899,7 +899,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
         uint32_t schedQuantum = config.get<uint32_t>("sim.schedQuantum", 10000); //phases
         zinfo->sched = new Scheduler(EndOfPhaseActions, parallelism, zinfo->numCores, schedQuantum);
     } else {
-        zinfo->sched = NULL;
+        zinfo->sched = nullptr;
     }
 
     zinfo->blockingSyscalls = config.get<bool>("sim.blockingSyscalls", false);
@@ -927,7 +927,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     CreateProcessTree(config);
     zinfo->procArray[0]->notifyStart(); //called here so that we can detect end-before-start races
 
-    zinfo->pinCmd = new PinCmd(&config, NULL /*don't pass config file to children --- can go either way, it's optional*/, outputDir, shmid);
+    zinfo->pinCmd = new PinCmd(&config, nullptr /*don't pass config file to children --- can go either way, it's optional*/, outputDir, shmid);
 
     //Caches, cores, memory controllers
     InitSystem(config);

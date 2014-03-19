@@ -48,7 +48,7 @@ class PhaseSlabAlloc {
 
             void clear() {
                 used = 0;
-                next = NULL;
+                next = nullptr;
                 //memset(buf, 0, size); //zeroing the slab can help chase memory corruption bugs
             }
 
@@ -63,7 +63,7 @@ class PhaseSlabAlloc {
                 used = (ptr-buf)+bytes;
 #endif
                 //info("Allocation stating at %p, %d bytes", ptr, bytes);
-                return (used < size)? ptr : NULL;
+                return (used < size)? ptr : nullptr;
             }
         };
 
@@ -74,11 +74,11 @@ class PhaseSlabAlloc {
                 Slab* end;
 
             public:
-                SlabList() : start(NULL), end(NULL) {}
+                SlabList() : start(nullptr), end(nullptr) {}
 
             void push_front(Slab* s) {
                 assert(s);
-                assert(s->next == NULL);
+                assert(s->next == nullptr);
                 s->next = start;
                 start = s;
                 if (!end) end = s;
@@ -89,18 +89,18 @@ class PhaseSlabAlloc {
                 Slab* res = start;
                 start = start->next;
                 if (res == end) {
-                    assert(start == NULL);
-                    end = NULL;
+                    assert(start == nullptr);
+                    end = nullptr;
                 }
                 return res;
             }
 
             void prepend(SlabList& lst) {
-                if (lst.start == NULL) { //lst is empty
-                    assert(lst.end == NULL);
+                if (lst.start == nullptr) { //lst is empty
+                    assert(lst.end == nullptr);
                 } else {
                     assert(lst.end);
-                    assert(lst.end->next == NULL);
+                    assert(lst.end->next == nullptr);
                     lst.end->next = start;
                     start = lst.start;
                     if (!end) end = lst.end; //we could be empty
@@ -108,8 +108,8 @@ class PhaseSlabAlloc {
             }
 
             void clear() {
-                start = NULL;
-                end = NULL;
+                start = nullptr;
+                end = nullptr;
             }
 
             bool empty() const {
@@ -129,7 +129,7 @@ class PhaseSlabAlloc {
         PhaseSlabAlloc() {
             //slabSize = (1<<12); //4KB, too small
             slabSize = (1<<16); //64KB, seems to be sweet spot in a number of tests, though I tried 32KB-256KB and the differences are minimal in that range (2.3% weave time)
-            curSlab = NULL;
+            curSlab = nullptr;
             freeList.clear();
             curPhaseList.clear();
             allocSlab();

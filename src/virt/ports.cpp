@@ -33,11 +33,11 @@
 
 // Helper function
 static struct sockaddr_in* GetSockAddr(ADDRINT guestAddr, size_t guestSize) {
-    if (guestSize != sizeof(struct sockaddr_in)) return NULL;
+    if (guestSize != sizeof(struct sockaddr_in)) return nullptr;
     struct sockaddr_in* res = (struct sockaddr_in*) malloc(sizeof(struct sockaddr_in));
     if (!safeCopy((struct sockaddr_in*) guestAddr, res) || res->sin_family != AF_INET) {
         free(res);
-        return NULL;
+        return nullptr;
     }
     return res;
 }

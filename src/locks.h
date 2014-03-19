@@ -163,7 +163,7 @@ static inline void futex_lock(volatile uint32_t* lock) {
         //At this point, we will block
         c = __sync_lock_test_and_set(lock, 2); //this is not exactly T&S, but atomic exchange; see GCC docs
         if (c == 0) return;
-        syscall(SYS_futex, lock, FUTEX_WAIT, 2, NULL, NULL, 0);
+        syscall(SYS_futex, lock, FUTEX_WAIT, 2, nullptr, nullptr, 0);
         c = __sync_lock_test_and_set(lock, 2); //atomic exchange
     } while (c != 0);
 }
@@ -178,7 +178,7 @@ static inline void futex_lock_nospin(volatile uint32_t* lock) {
         //At this point, we will block
         c = __sync_lock_test_and_set(lock, 2); //this is not exactly T&S, but atomic exchange; see GCC docs
         if (c == 0) return;
-        syscall(SYS_futex, lock, FUTEX_WAIT, 2, NULL, NULL, 0);
+        syscall(SYS_futex, lock, FUTEX_WAIT, 2, nullptr, nullptr, 0);
         c = __sync_lock_test_and_set(lock, 2); //atomic exchange
     } while (c != 0);
 }
@@ -193,7 +193,7 @@ static inline bool futex_trylock_nospin_timeout(volatile uint32_t* lock, uint64_
     uint32_t c = __sync_lock_test_and_set(lock, 2); //this is not exactly T&S, but atomic exchange; see GCC docs
     if (c == 0) return true;
     const struct timespec timeout = {(time_t) timeoutNs/BILLION, (time_t) timeoutNs % BILLION};
-    syscall(SYS_futex, lock, FUTEX_WAIT, 2, &timeout, NULL, 0);
+    syscall(SYS_futex, lock, FUTEX_WAIT, 2, &timeout, nullptr, 0);
     c = __sync_lock_test_and_set(lock, 2); //atomic exchange
     if (c == 0) return true;
     return false;
@@ -206,7 +206,7 @@ static inline void futex_unlock(volatile uint32_t* lock) {
          * sleeping on this. Still, if there is lots of contention in userland, this doesn't work
          * that well. But I don't care that much, as this only happens between phase locks.
          */
-        syscall(SYS_futex, lock, FUTEX_WAKE, 1 /*wake next*/, NULL, NULL, 0);
+        syscall(SYS_futex, lock, FUTEX_WAKE, 1 /*wake next*/, nullptr, nullptr, 0);
     }
 }
 

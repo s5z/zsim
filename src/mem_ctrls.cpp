@@ -49,7 +49,7 @@ uint64_t SimpleMemory::access(MemReq& req) {
 /*
     if ((req.type == GETS || req.type == GETX) && eventRecorders[req.srcId]) {
         Address addr = req.lineAddr<<lineBits;
-        MemAccReqEvent* memEv = new (eventRecorders[req.srcId]->alloc<MemAccReqEvent>()) MemAccReqEvent(NULL, false, addr);
+        MemAccReqEvent* memEv = new (eventRecorders[req.srcId]->alloc<MemAccReqEvent>()) MemAccReqEvent(nullptr, false, addr);
         TimingRecord tr = {addr, req.cycle, respCycle, req.type, memEv, memEv};
         eventRecorders[req.srcId]->pushRecord(tr);
     }

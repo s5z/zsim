@@ -43,7 +43,7 @@ class ReplPolicy : public GlobAlloc {
         CC* cc; //coherence controller, used to figure out whether candidates are valid or number of sharers
 
     public:
-        ReplPolicy() : cc(NULL) {}
+        ReplPolicy() : cc(nullptr) {}
 
         virtual void setCC(CC* _cc) {cc = _cc;}
 

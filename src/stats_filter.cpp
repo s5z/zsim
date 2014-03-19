@@ -33,7 +33,7 @@ using std::regex; using std::regex_match; using std::string; using std::vector;
 // FilterStats operates recursively, building up a filtered hierarchy of aggregates
 
 AggregateStat* FilterStatsLevel(const AggregateStat* src, const regex& filter, const char* prefix) {
-    string base = prefix? (string(prefix) + src->name() + ".") : ""; //if NULL prefix, omit our name (we're root)
+    string base = prefix? (string(prefix) + src->name() + ".") : ""; //if nullptr prefix, omit our name (we're root)
     vector<Stat*> children;
     for (uint32_t i = 0; i < src->size(); i++) {
         Stat* child = src->get(i);
@@ -52,13 +52,13 @@ AggregateStat* FilterStatsLevel(const AggregateStat* src, const regex& filter, c
         for (Stat* c : children) res->append(c);
         return res;
     } else {
-        return NULL;
+        return nullptr;
     }
 }
 
 AggregateStat* FilterStats(const AggregateStat* rootStat, const char* regexStr) {
     regex filter(regexStr);
-    AggregateStat* res = FilterStatsLevel(rootStat, filter, NULL /*root*/);
+    AggregateStat* res = FilterStatsLevel(rootStat, filter, nullptr /*root*/);
     if (res) res->makeImmutable();
     return res;
 }

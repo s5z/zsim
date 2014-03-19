@@ -35,7 +35,7 @@ void VirtGetcpu(uint32_t tid, uint32_t cpu, ADDRINT arg0, ADDRINT arg1) {
     unsigned resCpu;
     unsigned resNode = 0;
     if (!arg0) {
-        info("getcpu() called with NULL cpu arg");
+        info("getcpu() called with null cpu arg");
     }
     if (!safeCopy((unsigned*)arg0, &resCpu)) {
         info("getcpu() called with invalid cpu arg");

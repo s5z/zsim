@@ -73,7 +73,7 @@ PinCmd::PinCmd(Config* conf, const char* configFile, const char* outputDir, uint
     if (configFile) {
         //Check configFile is an absolute path
         //NOTE: We check rather than canonicalizing it ourselves because by the time we're created, we might be in another directory
-        char* absPath = realpath(configFile, NULL);
+        char* absPath = realpath(configFile, nullptr);
         if (std::string(configFile) != std::string(absPath)) {
             panic("Internal zsim bug, configFile should be absolute");
         }
@@ -153,7 +153,7 @@ g_vector<g_string> PinCmd::getFullCmdArgs(uint32_t procIdx, const char** inputFi
     wordfree(&p);
 
     //Input redirect
-    *inputFile = (procInfo[procIdx].input == "")? NULL : procInfo[procIdx].input.c_str();
+    *inputFile = (procInfo[procIdx].input == "")? nullptr : procInfo[procIdx].input.c_str();
     return res;
 }
 

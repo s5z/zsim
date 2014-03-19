@@ -73,7 +73,7 @@ DRAMSimMemory::DRAMSimMemory(string& dramTechIni, string& dramSystemIni, string&
 
     TransactionCompleteCB *read_cb = new Callback<DRAMSimMemory, void, unsigned, uint64_t, uint64_t>(this, &DRAMSimMemory::DRAM_read_return_cb);
     TransactionCompleteCB *write_cb = new Callback<DRAMSimMemory, void, unsigned, uint64_t, uint64_t>(this, &DRAMSimMemory::DRAM_write_return_cb);
-    dramCore->RegisterCallbacks(read_cb, write_cb, NULL);
+    dramCore->RegisterCallbacks(read_cb, write_cb, nullptr);
 
     domain = _domain;
     TickEvent<DRAMSimMemory>* tickEv = new TickEvent<DRAMSimMemory>(this, domain);

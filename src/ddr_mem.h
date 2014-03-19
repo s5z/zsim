@@ -120,7 +120,7 @@ class RequestQueue {
         };
 
         inline iterator begin() const {return iterator(reqList.front());}
-        inline iterator end() const {return iterator(NULL);}
+        inline iterator end() const {return iterator(nullptr);}
 
         inline void remove(iterator i) {
             assert(i.n);
@@ -155,7 +155,7 @@ class DDRMemory : public MemObject {
             uint64_t startSysCycle;  // in sysCycles
 
             // Corresponding event to send a response to
-            // Writes get a response immediately, so this is NULL for them
+            // Writes get a response immediately, so this is nullptr for them
             DDRMemoryAccEvent* ev;
         };
 

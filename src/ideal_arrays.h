@@ -69,7 +69,7 @@ class IdealLRUArray : public CacheArray {
         CC* cc;
 
     public:
-        explicit IdealLRUArray(uint32_t _numLines) : numLines(_numLines), cc(NULL) {
+        explicit IdealLRUArray(uint32_t _numLines) : numLines(_numLines), cc(nullptr) {
             array = gm_calloc<Entry>(numLines);
             for (uint32_t i = 0; i < numLines; i++) {
                 Entry* e = new (&array[i]) Entry(i);

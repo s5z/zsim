@@ -56,7 +56,7 @@ AccessTraceReader::AccessTraceReader(std::string _fname) : fname(_fname.c_str())
     curFrameRecord = 0;
     cur = 0;
     max = MIN(PT_CHUNKSIZE, numRecords);
-    buf = max? gm_calloc<PackedAccessRecord>(max) : NULL;
+    buf = max? gm_calloc<PackedAccessRecord>(max) : nullptr;
 
     if (max) {
         H5PTread_packets(table, 0, max, buf);
@@ -166,7 +166,7 @@ void AccessTraceWriter::dump(bool cont) {
         H5Aclose(fAttr);
 
         gm_free(buf);
-        buf = NULL;
+        buf = nullptr;
         max = 0;
     }
 

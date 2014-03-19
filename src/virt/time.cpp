@@ -221,7 +221,7 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
     PIN_SetSyscallArgument(ctxt, std, 0, (ADDRINT)futexWord);
     PIN_SetSyscallArgument(ctxt, std, 1, (ADDRINT)FUTEX_WAIT);
     PIN_SetSyscallArgument(ctxt, std, 2, (ADDRINT)1 /*by convention, see sched code*/);
-    PIN_SetSyscallArgument(ctxt, std, 3, (ADDRINT)NULL);
+    PIN_SetSyscallArgument(ctxt, std, 3, (ADDRINT)nullptr);
     
     return [isClock, wakeupPhase, arg0, arg1, arg2, arg3, rem](PostPatchArgs args) {
         CONTEXT* ctxt = args.ctxt;

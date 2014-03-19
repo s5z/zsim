@@ -84,8 +84,8 @@ bool IsSleepingInFutex(uint32_t linuxPid, uint32_t linuxTid, uintptr_t futexAddr
     
     std::vector<std::string> argList = ParseList<std::string>(ss.str());
     bool match = argList.size() >= 2 &&
-        strtoul(argList[0].c_str(), NULL, 0) == SYS_futex &&
-        (uintptr_t)strtoul(argList[1].c_str(), NULL, 0) == futexAddr;
+        strtoul(argList[0].c_str(), nullptr, 0) == SYS_futex &&
+        (uintptr_t)strtoul(argList[1].c_str(), nullptr, 0) == futexAddr;
     //info("%s | %s | SYS_futex = %d futexAddr = 0x%lx | match = %d ", ss.str().c_str(), Str(argList).c_str(), SYS_futex, futexAddr, match);
     return match;
 }
@@ -254,7 +254,7 @@ void Scheduler::threadTrampoline(void* arg) {
 }
 
 void Scheduler::startWatchdogThread() {
-    PIN_SpawnInternalThread(threadTrampoline, this, 64*1024, NULL);
+    PIN_SpawnInternalThread(threadTrampoline, this, 64*1024, nullptr);
 }
 
 
@@ -381,7 +381,7 @@ void Scheduler::finishFakeLeave(ThreadInfo* th) {
     FakeLeaveInfo* si = th->fakeLeave;
     fakeLeaves.remove(si);
     delete si;
-    assert(th->fakeLeave == NULL);
+    assert(th->fakeLeave == nullptr);
 }
 
 void Scheduler::waitUntilQueued(ThreadInfo* th) {

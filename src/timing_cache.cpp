@@ -162,7 +162,7 @@ uint64_t TimingCache::access(MemReq& req) {
         }
 
         // At this point we have all the info we need to hammer out the timing record
-        TimingRecord tr = {req.lineAddr << lineBits, req.cycle, respCycle, req.type, NULL, NULL}; //note the end event is the response, not the wback
+        TimingRecord tr = {req.lineAddr << lineBits, req.cycle, respCycle, req.type, nullptr, nullptr}; //note the end event is the response, not the wback
 
         if (getDoneCycle - req.cycle == accLat) {
             // Hit
@@ -223,12 +223,12 @@ uint64_t TimingCache::access(MemReq& req) {
             };
 
             // Get path
-            connect(hasAccessRecord? &accessRecord : NULL, mse, mre, req.cycle + accLat, getDoneCycle);
+            connect(hasAccessRecord? &accessRecord : nullptr, mse, mre, req.cycle + accLat, getDoneCycle);
             mre->addChild(mwe, evRec);
 
             // Eviction path
             if (evDoneCycle) {
-                connect(hasWritebackRecord? &writebackRecord : NULL, mse, mwe, req.cycle + accLat, evDoneCycle);
+                connect(hasWritebackRecord? &writebackRecord : nullptr, mse, mwe, req.cycle + accLat, evDoneCycle);
             }
 
             // Replacement path

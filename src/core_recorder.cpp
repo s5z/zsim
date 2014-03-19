@@ -52,7 +52,7 @@ class TimingCoreEvent : public TimingEvent {
 CoreRecorder::CoreRecorder(uint32_t _domain, g_string& _name)
     : domain(_domain), name(_name + "-rec")
 {
-    prevRespEvent = NULL;
+    prevRespEvent = nullptr;
     state = HALTED;
     gapCycles = 0;
     eventRecorder.setGapCycles(gapCycles);
@@ -241,8 +241,8 @@ uint64_t CoreRecorder::cSimEnd(uint64_t curCycle) {
         state = HALTED;
         DEBUG_MSG("[%s] lastEventSimulated reached (startCycle %ld), DRAINING -> HALTED", name.c_str(), lastEventSimulated->startCycle);
 
-        lastEventSimulated = NULL;
-        prevRespEvent = NULL;
+        lastEventSimulated = nullptr;
+        prevRespEvent = nullptr;
     }
     return curCycle;
 }

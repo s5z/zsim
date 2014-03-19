@@ -85,7 +85,7 @@ class Stat : public GlobAlloc {
         const char* _desc;
 
     public:
-        Stat() : _name(NULL), _desc(NULL) {}
+        Stat() : _name(nullptr), _desc(nullptr) {}
 
         virtual ~Stat() {}
 
@@ -132,7 +132,7 @@ class AggregateStat : public Stat {
         //Returns true if it is a non-empty type, false otherwise. Empty types are culled by the parent.
         bool makeImmutable() {
             assert(_isMutable);
-            assert(_name != NULL); //Should have been initialized
+            assert(_name != nullptr); //Should have been initialized
             _isMutable = false;
             g_vector<Stat*>::iterator it;
             g_vector<Stat*> newChildren;
@@ -190,17 +190,17 @@ class VectorStat : public Stat {
         const char** _counterNames;
 
     public:
-        VectorStat() : _counterNames(NULL) {}
+        VectorStat() : _counterNames(nullptr) {}
 
         virtual uint64_t count(uint32_t idx) const = 0;
         virtual uint32_t size() const = 0;
 
         inline bool hasCounterNames() {
-            return (_counterNames != NULL);
+            return (_counterNames != nullptr);
         }
 
         inline const char* counterName(uint32_t idx) const {
-            return (_counterNames == NULL)? NULL : _counterNames[idx];
+            return (_counterNames == nullptr)? nullptr : _counterNames[idx];
         }
 
         virtual void init(const char* name, const char* desc) {
@@ -259,7 +259,7 @@ class VectorCounter : public VectorStat {
             assert(size > 0);
             _counters.resize(size);
             for (uint32_t i = 0; i < size; i++) _counters[i] = 0;
-            _counterNames = NULL;
+            _counterNames = nullptr;
         }
 
         /* With counter names */
@@ -294,11 +294,11 @@ class VectorCounter : public VectorStat {
         }
 /*
         inline bool hasCounterNames() {
-            return (_counterNames != NULL);
+            return (_counterNames != nullptr);
         }
 
         inline const char* counterName(uint32_t idx) const {
-            return (_counterNames == NULL)? NULL : _counterNames[idx];
+            return (_counterNames == nullptr)? nullptr : _counterNames[idx];
         }*/
 };
 
@@ -313,7 +313,7 @@ class ProxyStat : public Stat {
         uint64_t* _statPtr;
 
     public:
-        ProxyStat() : Stat(), _statPtr(NULL) {}
+        ProxyStat() : Stat(), _statPtr(nullptr) {}
 
         void init(const char* name, const char* desc, uint64_t* ptr) {
             initStat(name, desc);
@@ -332,7 +332,7 @@ class ProxyFuncStat : public Stat {
         uint64_t (*_func)();
 
     public:
-        ProxyFuncStat() : Stat(), _func(NULL) {}
+        ProxyFuncStat() : Stat(), _func(nullptr) {}
 
         void init(const char* name, const char* desc, uint64_t (*func)()) {
             initStat(name, desc);

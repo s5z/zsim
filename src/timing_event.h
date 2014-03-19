@@ -39,8 +39,8 @@ struct TimingEventBlock {
     TimingEventBlock* next;
 
     TimingEventBlock() {
-        for (uint32_t i = 0; i < TIMING_BLOCK_EVENTS; i++) events[i] = NULL;
-        next = NULL;
+        for (uint32_t i = 0; i < TIMING_BLOCK_EVENTS; i++) events[i] = nullptr;
+        next = nullptr;
     }
 
     void* operator new (size_t sz, EventRecorder* evRec) {
@@ -87,9 +87,9 @@ class TimingEvent {
         uint32_t postDelay; //we could get by with one delay, but pre/post makes it easier to code
 
     public:
-        TimingEvent(uint32_t _preDelay, uint32_t _postDelay, int32_t _domain = -1) : next(NULL), state(EV_NONE), cycle(0), minStartCycle(-1L), child(NULL),
+        TimingEvent(uint32_t _preDelay, uint32_t _postDelay, int32_t _domain = -1) : next(nullptr), state(EV_NONE), cycle(0), minStartCycle(-1L), child(nullptr),
                     domain(_domain), numChildren(0), numParents(0), preDelay(_preDelay), postDelay(_postDelay) {}
-        explicit TimingEvent(int32_t _domain = -1) : next(NULL), state(EV_NONE), minStartCycle(-1L), child(NULL),
+        explicit TimingEvent(int32_t _domain = -1) : next(nullptr), state(EV_NONE), minStartCycle(-1L), child(nullptr),
                     domain(_domain), numChildren(0), numParents(0), preDelay(0), postDelay(0) {} //no delegating constructors until gcc 4.7...
 
         inline uint32_t getDomain() const {return domain;}

@@ -57,7 +57,7 @@ void TimingEvent::requeue(uint64_t nextCycle) {
 
 void TimingEvent::produceCrossings(EventRecorder* evRec) {
     assert(domain != -1);
-    //assert(dynamic_cast<CrossingEvent*>(this) == NULL); //careful, expensive...
+    //assert(dynamic_cast<CrossingEvent*>(this) == nullptr); //careful, expensive...
     auto pcLambda = [this, evRec](TimingEvent** childPtr) {
         TimingEvent* c = *childPtr;
         if (c->domain != domain) *childPtr = handleCrossing(c, evRec, true);
@@ -112,7 +112,7 @@ CrossingEvent::CrossingEvent(TimingEvent* parent, TimingEvent* child, uint64_t _
     minStartCycle = _minStartCycle;
     origStartCycle = minStartCycle - evRec->getGapCycles();
     //queue(MAX(zinfo->contentionSim->getLastLimit(), minStartCycle)); //this initial queue always works --- 0 parents
-    //childCrossing = NULL;
+    //childCrossing = nullptr;
     zinfo->contentionSim->enqueueCrossing(this, MAX(zinfo->contentionSim->getLastLimit(), minStartCycle), evRec->getSourceId(), srcDomain, child->domain, evRec);
 }
 

@@ -104,7 +104,7 @@ class SchedEvent : public TimingEvent, public GlobAlloc {
             setRunning();
             hold();
             state = IDLE;
-            next = NULL;
+            next = nullptr;
         }
 
         void parentDone(uint64_t startCycle) {
@@ -221,8 +221,8 @@ DDRMemory::DDRMemory(uint32_t _lineSize, uint32_t _colSize, uint32_t _ranksPerCh
     new RefreshEvent(this, memToSysCycle(tREFI), domain);
 
     nextSchedCycle = -1ul;
-    nextSchedEvent = NULL;
-    eventFreelist = NULL;
+    nextSchedEvent = nullptr;
+    eventFreelist = nullptr;
 }
 
 void DDRMemory::initStats(AggregateStat* parentStat) {
@@ -327,7 +327,7 @@ void DDRMemory::enqueue(DDRMemoryAccEvent* ev, uint64_t sysCycle) {
                 if (eventFreelist) {
                     nextSchedEvent = eventFreelist;
                     eventFreelist = eventFreelist->next;
-                    nextSchedEvent->next = NULL;
+                    nextSchedEvent->next = nullptr;
                 } else {
                     nextSchedEvent = new SchedEvent(this, domain);
                 }
@@ -346,7 +346,7 @@ void DDRMemory::queue(Request* req, uint64_t memCycle) {
     // If it's a write, respond to it immediately
     if (req->write) {
         auto ev = req->ev;
-        req->ev = NULL;
+        req->ev = nullptr;
 
         ev->release();
         uint64_t respCycle = memToSysCycle(memCycle) + minWrLatency;
@@ -451,7 +451,7 @@ uint64_t DDRMemory::tick(uint64_t sysCycle) {
 
     nextSchedCycle = minSchedCycle;
     if (nextSchedCycle == -1ul) {
-        nextSchedEvent = NULL;
+        nextSchedEvent = nullptr;
         return 0;
     } else {
         // sysToMemCycle translates this back to nextSchedCycle
@@ -462,7 +462,7 @@ uint64_t DDRMemory::tick(uint64_t sysCycle) {
 
 void DDRMemory::recycleEvent(SchedEvent* ev) {
     assert(ev != nextSchedEvent);
-    assert(ev->next == NULL);
+    assert(ev->next == nullptr);
     ev->next = eventFreelist;
     eventFreelist = ev;
 }
@@ -513,7 +513,7 @@ uint64_t DDRMemory::trySchedule(uint64_t curCycle, uint64_t sysCycle) {
     RequestQueue<Request>& queue = isWriteQueue? wrQueue : rdQueue;
     assert(!queue.empty());
 
-    Request* r = NULL;
+    Request* r = nullptr;
     RequestQueue<Request>::iterator ir = queue.begin();
     uint64_t minSchedCycle = -1ul;
     while (ir != queue.end()) {

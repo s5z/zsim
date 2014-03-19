@@ -30,7 +30,7 @@
 
 /* Produces a filtered stats tree, where only the base stats whose names match the regex are retained.
  * Base stats are NOT copied, they are either kept or ommitted. Aggregate stats are created as needed.
- * The returned tree can be passed to any backend to produce filtered dumps. Returns NULL if nothing
+ * The returned tree can be passed to any backend to produce filtered dumps. Returns nullptr if nothing
  * matches the regex.
  */
 AggregateStat* FilterStats(const AggregateStat* srcStat, const char* regex);

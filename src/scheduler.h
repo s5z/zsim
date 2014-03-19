@@ -96,7 +96,7 @@ class Scheduler : public GlobAlloc, public Callee {
             ThreadState state;
             uint32_t cid; //only current if RUNNING; otherwise, it's the last one used.
 
-            volatile ThreadInfo* handoffThread; //if at the end of a sync() this is not NULL, we need to transfer our current context to the thread pointed here.
+            volatile ThreadInfo* handoffThread; //if at the end of a sync() this is not nullptr, we need to transfer our current context to the thread pointed here.
             volatile uint32_t futexWord;
             volatile bool needsJoin; //after waiting on the scheduler, should we join the barrier, or is our cid good to go already?
 
@@ -114,7 +114,7 @@ class Scheduler : public GlobAlloc, public Callee {
             {
                 state = STARTED;
                 cid = 0;
-                handoffThread = NULL;
+                handoffThread = nullptr;
                 futexWord = 0;
                 markedForSleep = false;
                 wakeupPhase = 0;
@@ -122,7 +122,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 uint32_t count = 0;
                 for (auto b : mask) if (b) count++;
                 if (count == 0) panic("Empty mask on gid %d!", gid);
-                fakeLeave = NULL;
+                fakeLeave = nullptr;
                 futexJoin.action = FJA_NONE;
             }
         };
@@ -130,7 +130,7 @@ class Scheduler : public GlobAlloc, public Callee {
         struct ContextInfo : InListNode<ContextInfo> {
             uint32_t cid;
             ContextState state;
-            ThreadInfo* curThread; //only current if used, otherwise NULL
+            ThreadInfo* curThread; //only current if used, otherwise nullptr
         };
 
         g_unordered_map<uint32_t, ThreadInfo*> gidMap;
@@ -174,7 +174,7 @@ class Scheduler : public GlobAlloc, public Callee {
             for (uint32_t i = 0; i < numCores; i++) {
                 contexts[i].cid = i;
                 contexts[i].state = IDLE;
-                contexts[i].curThread = NULL;
+                contexts[i].curThread = nullptr;
                 freeList.push_back(&contexts[i]);
             }
             schedLock = 0;
@@ -391,7 +391,7 @@ class Scheduler : public GlobAlloc, public Callee {
             if (th->handoffThread) {
                 futex_lock(&schedLock);  // this can be made lock-free, but it's not worth the effort
                 ThreadInfo* dst = const_cast<ThreadInfo*>(th->handoffThread);  // de-volatilize
-                th->handoffThread = NULL;
+                th->handoffThread = nullptr;
                 ContextInfo* ctx = &contexts[th->cid];
                 deschedule(th, ctx, QUEUED);
                 schedule(dst, ctx);
@@ -554,7 +554,7 @@ class Scheduler : public GlobAlloc, public Callee {
         void schedule(ThreadInfo* th, ContextInfo* ctx) {
             assert(th->state == STARTED || th->state == BLOCKED || th->state == QUEUED);
             assert(ctx->state == IDLE);
-            assert(ctx->curThread == NULL);
+            assert(ctx->curThread == nullptr);
             th->state = RUNNING;
             th->cid = ctx->cid;
             ctx->state = USED;
@@ -573,7 +573,7 @@ class Scheduler : public GlobAlloc, public Callee {
             assert(targetState == BLOCKED || targetState == QUEUED || targetState == SLEEPING);
             th->state = targetState;
             ctx->state = IDLE;
-            ctx->curThread = NULL;
+            ctx->curThread = nullptr;
             scheduledThreads--;
             //Notify core of context-switch eagerly.
             //TODO: we may need more callbacks in the cores, e.g. in schedule(). Revise interface as needed...
@@ -589,7 +589,7 @@ class Scheduler : public GlobAlloc, public Callee {
             //printState();
             futex_unlock(&schedLock);
             while (true) {
-                int futex_res = syscall(SYS_futex, &th->futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, NULL, NULL, 0);
+                int futex_res = syscall(SYS_futex, &th->futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, nullptr, nullptr, 0);
                 if (futex_res == 0 || th->futexWord != 1) break;
             }
             //info("%d out of sched wait, got cid = %d, needsJoin = %d", th->gid, th->cid, th->needsJoin);
@@ -606,7 +606,7 @@ class Scheduler : public GlobAlloc, public Callee {
             th->needsJoin = needsJoin;
             bool succ = __sync_bool_compare_and_swap(&th->futexWord, 1, 0);
             if (!succ) panic("Wakeup race in barrier?");
-            syscall(SYS_futex, &th->futexWord, FUTEX_WAKE, 1, NULL, NULL, 0);
+            syscall(SYS_futex, &th->futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
             waitUntilQueued(th);
         }
 
@@ -628,14 +628,14 @@ class Scheduler : public GlobAlloc, public Callee {
 
         //Core scheduling functions
         /* This is actually the interface that an abstract OS scheduler would have, and implements the scheduling policy:
-         * - schedThread(): Here's a thread that just became available; return either a ContextInfo* where to schedule it, or NULL if none are available
-         * - schedContext(): Here's a context that just became available; return either a ThreadInfo* to schedule on it, or NULL if none are available
+         * - schedThread(): Here's a thread that just became available; return either a ContextInfo* where to schedule it, or nullptr if none are available
+         * - schedContext(): Here's a context that just became available; return either a ThreadInfo* to schedule on it, or nullptr if none are available
          * - schedTick(): Current quantum is over, hand off contexts to other threads as you see fit
          * These functions can REMOVE from runQueue, outQueue, and freeList, but do not INSERT. These are filled in elsewhere. They also have minimal concerns
          * for thread and context states. Those state machines are implemented and handled elsewhere, except where strictly necessary.
          */
         ContextInfo* schedThread(ThreadInfo* th) {
-            ContextInfo* ctx = NULL;
+            ContextInfo* ctx = nullptr;
 
             //First, try to get scheduled in the last context we were running at
             assert(th->cid < numCores); //though old, it should be in a valid range
@@ -675,14 +675,14 @@ class Scheduler : public GlobAlloc, public Callee {
 
             if (ctx) assert(th->mask[ctx->cid]);
 
-            //info("schedThread done, gid %d, success %d", th->gid, ctx != NULL);
+            //info("schedThread done, gid %d, success %d", th->gid, ctx != nullptr);
             //printState();
             return ctx;
         }
 
         ThreadInfo* schedContext(ContextInfo* ctx) {
-            ThreadInfo* th = NULL;
-            ThreadInfo* blockedTh = runQueue.front(); //NULL if empty
+            ThreadInfo* th = nullptr;
+            ThreadInfo* blockedTh = runQueue.front();  // null if empty
             while (blockedTh) {
                 if (blockedTh->mask[ctx->cid]) {
                     th = blockedTh;
@@ -693,7 +693,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 }
             }
 
-            //info("schedContext done, cid %d, success %d (gid %d)", ctx->cid, th != NULL, th? th->gid : 0);
+            //info("schedContext done, cid %d, success %d (gid %d)", ctx->cid, th != nullptr, th? th->gid : 0);
             //printState();
             return th;
         }
@@ -792,13 +792,13 @@ class Scheduler : public GlobAlloc, public Callee {
             FakeLeaveInfo(uint64_t _pc, ThreadInfo* _th, int _syscallNumber, uint64_t _arg0, uint64_t _arg1) :
                 pc(_pc), th(_th), syscallNumber(_syscallNumber), arg0(_arg0), arg1(_arg1)
             {
-                assert(th->fakeLeave == NULL);
+                assert(th->fakeLeave == nullptr);
                 th->fakeLeave = this;
             }
 
             ~FakeLeaveInfo() {
                 assert(th->fakeLeave == this);
-                th->fakeLeave = NULL;
+                th->fakeLeave = nullptr;
             }
         };
 

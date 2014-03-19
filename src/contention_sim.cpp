@@ -94,7 +94,7 @@ ContentionSim::ContentionSim(uint32_t _numDomains, uint32_t _numSimThreads) {
     threadTicket = 0;
     __sync_synchronize();
     for (uint32_t i = 0; i < numSimThreads; i++) {
-        PIN_SpawnInternalThread(SimThreadTrampoline, this, 1024*1024, NULL);
+        PIN_SpawnInternalThread(SimThreadTrampoline, this, 1024*1024, nullptr);
     }
 
     lastCrossing = gm_calloc<CrossingEventInfo>(numDomains*numDomains*MAX_THREADS); //TODO: refine... this allocs too much
@@ -220,7 +220,7 @@ void ContentionSim::enqueueCrossing(CrossingEvent* ev, uint64_t cycle, uint32_t 
     CrossingStack& cs = evRec->getCrossingStack();
     bool isFirst = cs.empty();
     bool isResp = false;
-    CrossingEvent* req = NULL;
+    CrossingEvent* req = nullptr;
     if (!isFirst) {
         CrossingEvent* b = cs.back();
         if (b->srcDomain == (uint32_t)ev->domain && (uint32_t)b->domain == ev->srcDomain) {

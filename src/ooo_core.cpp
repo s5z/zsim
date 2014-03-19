@@ -63,7 +63,7 @@ OOOCore::OOOCore(FilterCache* _l1i, FilterCache* _l1d, g_string& _name) : Core(_
     for (uint32_t i = 0; i < MAX_REGISTERS; i++) {
         regScoreboard[i] = 0;
     }
-    prevBbl = NULL;
+    prevBbl = nullptr;
 
     lastStoreCommitCycle = 0;
     lastStoreAddrCommitCycle = 0;
@@ -122,7 +122,7 @@ uint64_t OOOCore::getPhaseCycles() const {return curCycle % zinfo->phaseLength;}
 void OOOCore::contextSwitch(int32_t gid) {
     if (gid == -1) {
         // Do not execute previous BBL, as we were context-switched
-        prevBbl = NULL;
+        prevBbl = nullptr;
 
         // Invalidate virtually-addressed filter caches
         l1i->contextSwitch();

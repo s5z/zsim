@@ -154,7 +154,7 @@ class Barrier : public GlobAlloc {
             if (threadList[tid].state == WAITING) {
                 DEBUG_BARRIER("[%d] Waiting on join", tid);
                 while (true) {
-                    int futex_res = syscall(SYS_futex, &threadList[tid].futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, NULL, NULL, 0);
+                    int futex_res = syscall(SYS_futex, &threadList[tid].futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, nullptr, nullptr, 0);
                     if (futex_res == 0 || threadList[tid].futexWord != 1) break;
                 }
                 //The thread that wakes us up changes this
@@ -189,7 +189,7 @@ class Barrier : public GlobAlloc {
 
             if (threadList[tid].state == WAITING) {
                 while (true) {
-                    int futex_res = syscall(SYS_futex, &threadList[tid].futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, NULL, NULL, 0);
+                    int futex_res = syscall(SYS_futex, &threadList[tid].futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, nullptr, nullptr, 0);
                     if (futex_res == 0 || threadList[tid].futexWord != 1) break;
                 }
                 //The thread that wakes us up changes this
@@ -264,7 +264,7 @@ class Barrier : public GlobAlloc {
                     threadList[wtid].lastIdx = idx;
                     bool succ = __sync_bool_compare_and_swap(&threadList[wtid].futexWord, 1, 0);
                     if (!succ) panic("Wakeup race in barrier?");
-                    syscall(SYS_futex, &threadList[wtid].futexWord, FUTEX_WAKE, 1, NULL, NULL, 0);
+                    syscall(SYS_futex, &threadList[wtid].futexWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
                     runningThreads++;
                 } else {
                     DEBUG_BARRIER("[%d] Skipping %d state %d", tid, wtid, threadList[wtid].state);

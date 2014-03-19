@@ -49,7 +49,7 @@ class CC : public GlobAlloc {
         virtual bool startAccess(MemReq& req) = 0; //initial locking, address races; returns true if access should be skipped; may change req!
         virtual bool shouldAllocate(const MemReq& req) = 0; //called when we don't find req's lineAddr in the array
         virtual uint64_t processEviction(const MemReq& triggerReq, Address wbLineAddr, int32_t lineId, uint64_t startCycle) = 0; //called iff shouldAllocate returns true
-        virtual uint64_t processAccess(const MemReq& req, int32_t lineId, uint64_t startCycle, uint64_t* getDoneCycle = NULL) = 0;
+        virtual uint64_t processAccess(const MemReq& req, int32_t lineId, uint64_t startCycle, uint64_t* getDoneCycle = nullptr) = 0;
         virtual void endAccess(const MemReq& req) = 0;
 
         //Inv methods
@@ -284,7 +284,7 @@ class MESICC : public CC {
 
     public:
         //Initialization
-        MESICC(uint32_t _numLines, bool _nonInclusiveHack, g_string& _name) : tcc(NULL), bcc(NULL),
+        MESICC(uint32_t _numLines, bool _nonInclusiveHack, g_string& _name) : tcc(nullptr), bcc(nullptr),
             numLines(_numLines), nonInclusiveHack(_nonInclusiveHack), name(_name) {}
 
         void setParents(uint32_t childId, const g_vector<MemObject*>& parents, Network* network) {
@@ -344,7 +344,7 @@ class MESICC : public CC {
             return evCycle;
         }
 
-        uint64_t processAccess(const MemReq& req, int32_t lineId, uint64_t startCycle, uint64_t* getDoneCycle = NULL) {
+        uint64_t processAccess(const MemReq& req, int32_t lineId, uint64_t startCycle, uint64_t* getDoneCycle = nullptr) {
             uint64_t respCycle = startCycle;
             //Handle non-inclusive writebacks by bypassing
             //NOTE: Most of the time, these are due to evictions, so the line is not there. But the second condition can trigger in NUCA-initiated
@@ -416,7 +416,7 @@ class MESITerminalCC : public CC {
 
     public:
         //Initialization
-        MESITerminalCC(uint32_t _numLines, const g_string& _name) : bcc(NULL), numLines(_numLines), name(_name) {}
+        MESITerminalCC(uint32_t _numLines, const g_string& _name) : bcc(nullptr), numLines(_numLines), name(_name) {}
 
         void setParents(uint32_t childId, const g_vector<MemObject*>& parents, Network* network) {
             bcc = new MESIBottomCC(numLines, childId, false /*inclusive*/);
@@ -462,7 +462,7 @@ class MESITerminalCC : public CC {
             return endCycle;  // critical path unaffected, but TimingCache needs it
         }
 
-        uint64_t processAccess(const MemReq& req, int32_t lineId, uint64_t startCycle,  uint64_t* getDoneCycle = NULL) {
+        uint64_t processAccess(const MemReq& req, int32_t lineId, uint64_t startCycle,  uint64_t* getDoneCycle = nullptr) {
             assert(lineId != -1);
             assert(!getDoneCycle);
             //if needed, fetch line or upgrade miss from upper level

@@ -860,7 +860,7 @@ bool MemSchedulerDefault::CheckSetEvent(MemAccessEventBase* ev) {
         if (it->second == ev->getAddr()) {
             if (ev->getType() == WRITE) {
                 wrQueue.erase(it);
-                wrQueue.push_back(MemSchedQueueElem(NULL, ev->getAddr()));
+                wrQueue.push_back(MemSchedQueueElem(nullptr, ev->getAddr()));
             }
             return true;
         }
@@ -872,11 +872,11 @@ bool MemSchedulerDefault::CheckSetEvent(MemAccessEventBase* ev) {
             if (ev->getType() == READ) {
                 // Update LRU
                 wrDoneQueue.erase(it);
-                wrDoneQueue.push_back(MemSchedQueueElem(NULL, ev->getAddr()));
+                wrDoneQueue.push_back(MemSchedQueueElem(nullptr, ev->getAddr()));
             } else { // Write
                 // Update for New Data
                 wrDoneQueue.erase(it);
-                wrQueue.push_back(MemSchedQueueElem(NULL, ev->getAddr()));
+                wrQueue.push_back(MemSchedQueueElem(nullptr, ev->getAddr()));
             }
             return true;
         }
@@ -886,7 +886,7 @@ bool MemSchedulerDefault::CheckSetEvent(MemAccessEventBase* ev) {
     if (ev->getType() == READ) {
         rdQueue.push_back(MemSchedQueueElem(ev, ev->getAddr()));
     } else { // Write
-        wrQueue.push_back(MemSchedQueueElem(NULL, ev->getAddr()));
+        wrQueue.push_back(MemSchedQueueElem(nullptr, ev->getAddr()));
         if (wrQueue.size() + wrDoneQueue.size() == wrQueueSize) {
             // Overflow case
             if (wrDoneQueue.empty() == false) {
@@ -929,11 +929,11 @@ bool MemSchedulerDefault::GetEvent(MemAccessEventBase*& ev, Address& addr, MemAc
         bRet = FindBestRequest(&wrQueue, idx);
         if (bRet) {
             it = wrQueue.begin() + idx;
-            ev = NULL;
+            ev = nullptr;
             addr = it->second;
             type = WRITE;
             wrQueue.erase(it);
-            wrDoneQueue.push_back(MemSchedQueueElem(NULL, addr));
+            wrDoneQueue.push_back(MemSchedQueueElem(nullptr, addr));
         }
     }
 
@@ -1026,17 +1026,17 @@ MemControllerBase::MemControllerBase(g_string _memCfg, uint32_t _cacheLineSize, 
         info("MemControllerBase::tick() will be call in each %ld sysCycle", nextSysTick);
     }
 
-    addrTraceLog = NULL;
+    addrTraceLog = nullptr;
     if (mParam->addrTrace == true) {
         g_string gzFileName = g_string("ZsimMemAddrTrace_") + name.c_str() + ".gz";
         addrTraceLog = gzopen(gzFileName.c_str(), "wb1");
-        if (addrTraceLog == NULL)
+        if (addrTraceLog == nullptr)
             panic("Fail to open file %s for addrTraceLog.", gzFileName.c_str());
     }
 }
 
 MemControllerBase::~MemControllerBase() {
-    if (mParam != NULL) {
+    if (mParam != nullptr) {
         for(uint32_t i = 0; i < mParam->channelCount; i++) {
             delete chnls[i];
             delete sches[i];
@@ -1084,7 +1084,7 @@ uint32_t MemControllerBase::tick(uint64_t sysCycle) {
 
 void MemControllerBase::TickScheduler(uint64_t sysCycle) {
     for(uint32_t i = 0; i < mParam->channelCount; i++) {
-        MemAccessEventBase* ev = NULL;
+        MemAccessEventBase* ev = nullptr;
         Address  addr = 0;
         MemAccessType type = READ;
         bool bRet = sches[i]->GetEvent(ev, addr, type);
@@ -1230,7 +1230,7 @@ void MemControllerBase::finish(void) {
     EstimateBandwidth(realTime, lastRealTime, true);
     UpdateCmdCounters();
 
-    if (addrTraceLog != NULL)
+    if (addrTraceLog != nullptr)
         gzclose(addrTraceLog);
 }
 
@@ -1291,7 +1291,7 @@ uint64_t MemControllerBase::LatencySimulate(Address lineAddr, uint64_t sysCycle,
     uint32_t bin = std::min(sysLatency/lhBinSize, (uint64_t)(lhNumBins-1));
     latencyHist.inc(bin);
 
-    if (addrTraceLog != NULL)
+    if (addrTraceLog != nullptr)
         gzwrite(addrTraceLog, (char*)&lineAddr, sizeof(uint64_t));
 
     if (type == WRITE) {

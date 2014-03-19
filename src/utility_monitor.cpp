@@ -81,7 +81,7 @@ void UMon::access(Address lineAddr) {
     uint64_t set = (hf->hash(1, lineAddr)) & setMask;
 
     // Check hit
-    Node* prev = NULL;
+    Node* prev = nullptr;
     Node* cur = heads[set];
     bool hit = false;
     for (uint32_t b = 0; b < buckets; b++) {
@@ -101,7 +101,7 @@ void UMon::access(Address lineAddr) {
     if (!hit) {
         curMisses++;
         //profMisses.inc();
-        assert(cur->next == NULL);
+        assert(cur->next == nullptr);
         cur->addr = lineAddr;
     }
 

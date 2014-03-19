@@ -53,7 +53,7 @@ int launchXtermDebugger(int targetPid, LibInfo* libzsimAddrs) {
             "-ex", "handle SIGTRAP nostop noprint", // For some reason we receive a lot of spurious sigtraps
             "-ex", "set confirm on", //reenable confirmations
             "-ex", "c", //start running
-            NULL};
+            nullptr};
         execvp(args[0], (char* const*)args);
         panic("shouldn't reach this...");
     } else {

@@ -56,7 +56,7 @@ PostPatchFn PatchOpen(PrePatchArgs args) {
         if (res > 0) {
             buf[res] = '\0';  // argh... readlink does not null-terminate strings!
             // Double-check deref'd symlink is valid
-            char* rp = realpath(buf, NULL);
+            char* rp = realpath(buf, nullptr);
             if (rp) {
                 fileName = string(buf) + "/" + fileName;
                 free(rp);
@@ -72,7 +72,7 @@ PostPatchFn PatchOpen(PrePatchArgs args) {
     string absPath;
 
     while (true) {
-        char* rp = realpath(cur.c_str(), NULL);
+        char* rp = realpath(cur.c_str(), nullptr);
         if (rp) {
             absPath = rp;  // copies
             free(rp);

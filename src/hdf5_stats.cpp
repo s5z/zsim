@@ -131,7 +131,7 @@ class HDF5BackendImpl : public GlobAlloc {
         /* Code to create a large compund datatype from an aggregate stat. ALWAYS returns deduplicated types */
         hid_t getH5Type(Stat* stat) { //I'd like to make this functional, but passing a member function as an argument is non-trivial...
             AggregateStat* aggrStat = dynamic_cast<AggregateStat*>(stat);
-            if (aggrStat == NULL) {
+            if (aggrStat == nullptr) {
                 return getBaseH5Type(stat);
             } else if (aggrStat->isRegular()) {
                 //This is a regular aggregate, i.e. an array of possibly compound types
@@ -177,7 +177,7 @@ class HDF5BackendImpl : public GlobAlloc {
 
         /* Return type of non-aggregates. ALWAYS returns deduplicated types. */
         hid_t getBaseH5Type(Stat* s) {
-            assert(dynamic_cast<AggregateStat*>(s) == NULL); //this can't be an aggregate
+            assert(dynamic_cast<AggregateStat*>(s) == nullptr); //this can't be an aggregate
             hid_t res;
             uint32_t size = 1; //scalar by default
             if (VectorStat* vs = dynamic_cast<VectorStat*>(s)) {
@@ -215,7 +215,7 @@ class HDF5BackendImpl : public GlobAlloc {
                     1 /*# fields*/, 0 /*# records*/,
                     recordSize, fieldNames, fieldOffsets, fieldTypes,
                     recordsPerWrite /*chunk size, in records, might as well be our aggregation degree*/,
-                    NULL, 9 /*compression*/, NULL);
+                    nullptr, 9 /*compression*/, nullptr);
             assert(hErrVal == 0);
 
             size_t bufSize = recordsPerWrite*recordSize;

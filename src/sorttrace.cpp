@@ -59,8 +59,8 @@ int main(int argc, const char* argv[]) {
     uint32_t numChildren = tr->getNumChildren();
     AccessTraceWriter* tw = new AccessTraceWriter(argv[2], numChildren);
 
-    deque<AccessRecord>* accs[numChildren]; //NULL if the child has no accesses
-    for (uint32_t i = 0; i < numChildren; i++) accs[i] = NULL;
+    deque<AccessRecord>* accs[numChildren];  // null if the child has no accesses
+    for (uint32_t i = 0; i < numChildren; i++) accs[i] = nullptr;
     priority_queue< pair<int64_t, uint32_t> > heads; //(negative cycle, child); we use negative cycles because priority_queue sorts from largest to smallest
     uint64_t readRecords  = 0;
     uint64_t writtenRecords  = 0;
@@ -98,7 +98,7 @@ int main(int argc, const char* argv[]) {
             if ((writtenRecords % 1024) == 0) printProgress(readRecords, writtenRecords, totalRecords);
             if (accs[child]->empty()) {
                 delete accs[child];
-                accs[child] = NULL;
+                accs[child] = nullptr;
             } else {
                 AccessRecord acc = accs[child]->front();
                 heads.push(make_pair(-acc.reqCycle, acc.childId));

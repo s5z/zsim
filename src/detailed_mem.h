@@ -209,7 +209,7 @@ class MemSchedulerBase : public GlobAlloc {
         // Hmm...so upon further investigation it looks like all of these arguments are 
         // written by the function. I am not a big fan of passing WRITE arguments by 
         // reference. Even more distrubingly, MemSchedQueueElem uses its MemAccessEventBase
-        // member in a weird way, with the member var being NULL signifying something (I don't
+        // member in a weird way, with the member var being nullptr signifying something (I don't
         // know what yet). Will look into this further
         //
         // FIXME(dsm): refpointer? pointeref? Hmmm...

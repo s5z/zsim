@@ -60,7 +60,7 @@ struct gm_segment {
     PAD();
 };
 
-static gm_segment* GM = NULL;
+static gm_segment* GM = nullptr;
 static int gm_shmid = 0;
 
 /* Heap segment size, in bytes. Can't grow for now, so choose something sensible, and within the machine's limits (see sysctl vars kernel.shmmax and kernel.shmall) */
@@ -74,7 +74,7 @@ int gm_init(size_t segmentSize) {
      * a SIGKILL)
      */
 
-    assert(GM == NULL);
+    assert(GM == nullptr);
     assert(gm_shmid == 0);
     gm_shmid = shmget(IPC_PRIVATE, segmentSize, 0644 | IPC_CREAT /*| SHM_HUGETLB*/);
     if (gm_shmid == -1) {
@@ -85,7 +85,7 @@ int gm_init(size_t segmentSize) {
     if (GM != GM_BASE_ADDR) {
         perror("gm_create failed shmat");
         warn("shmat failed, shmid %d. Trying not to leave garbage behind before dying...", gm_shmid);
-        int ret = shmctl(gm_shmid, IPC_RMID, NULL);
+        int ret = shmctl(gm_shmid, IPC_RMID, nullptr);
         if (ret) {
             perror("shmctl failed, we're leaving garbage behind!");
             panic("Check /proc/sysvipc/shm and manually delete segment with shmid %d", gm_shmid);
@@ -95,12 +95,12 @@ int gm_init(size_t segmentSize) {
     }
 
     //Mark the segment to auto-destroy when the number of attached processes becomes 0.
-    int ret = shmctl(gm_shmid, IPC_RMID, NULL);
+    int ret = shmctl(gm_shmid, IPC_RMID, nullptr);
     assert(!ret);
 
     char* alloc_start = reinterpret_cast<char*>(GM) + 1024;
     size_t alloc_size = segmentSize - 1 - 1024;
-    GM->base_regp = NULL;
+    GM->base_regp = nullptr;
 
     GM->mspace_ptr = create_mspace_with_base(alloc_start, alloc_size, 1 /*locked*/);
     futex_init(&GM->lock);
@@ -110,7 +110,7 @@ int gm_init(size_t segmentSize) {
 }
 
 void gm_attach(int shmid) {
-    assert(GM == NULL);
+    assert(GM == nullptr);
     assert(gm_shmid == 0);
     gm_shmid = shmid;
     GM = static_cast<gm_segment*>(shmat(gm_shmid, GM_BASE_ADDR, 0));
@@ -171,7 +171,7 @@ char* gm_strdup(const char* str) {
 
 void gm_set_glob_ptr(void* ptr) {
     assert(GM);
-    assert(GM->base_regp == NULL);
+    assert(GM->base_regp == nullptr);
     GM->base_regp = ptr;
 }
 
@@ -183,13 +183,13 @@ void* gm_get_glob_ptr() {
 
 void gm_set_secondary_ptr(void* ptr) {
     assert(GM);
-    assert(GM->secondary_regp == NULL);
+    assert(GM->secondary_regp == nullptr);
     GM->secondary_regp = ptr;
 }
 
 void* gm_get_secondary_ptr() {
     assert(GM);
-    assert(GM->secondary_regp != NULL);
+    assert(GM->secondary_regp != nullptr);
     return const_cast<void*>(GM->secondary_regp);  // devolatilize
 }
 
@@ -200,13 +200,13 @@ void gm_stats() {
 
 bool gm_isready() {
     assert(GM);
-    return (GM->base_regp != NULL);
+    return (GM->base_regp != nullptr);
 }
 
 void gm_detach() {
     assert(GM);
     shmdt(GM);
-    GM = NULL;
+    GM = nullptr;
     gm_shmid = 0;
 }
 
