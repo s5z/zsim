@@ -81,18 +81,12 @@ class HDF5BackendImpl : public GlobAlloc {
                         dumpWalk(as->get(i));
                     }
                 }
-            } else if (Counter* cs = dynamic_cast<Counter*>(s)) {
-                *(curPtr++) = cs->count();
             } else if (ScalarStat* ss = dynamic_cast<ScalarStat*>(s)) {
                 *(curPtr++) = ss->get();
             } else if (VectorStat* vs = dynamic_cast<VectorStat*>(s)) {
                 for (uint32_t i = 0; i < vs->size(); i++) {
                     *(curPtr++) = vs->count(i);
                 }
-            } else if (ProxyStat* ps = dynamic_cast<ProxyStat*>(s)) {
-                *(curPtr++) = ps->stat();
-            } else if (ProxyFuncStat* pfs = dynamic_cast<ProxyFuncStat*>(s)) {
-                *(curPtr++) = pfs->stat();
             } else {
                 panic("Unrecognized stat type");
             }

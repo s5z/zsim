@@ -1344,8 +1344,8 @@ void MemControllerBase::EstimatePowers(uint64_t sysCycle, bool finish) {
             curPower.background += chnls[i]->GetBackGroundEnergy(memCycle, lastMemCycle, true);
     }
 
-    uint64_t avgRdActivity = profReads.count()  * mParam->tTrans;
-    uint64_t avgWrActivity = profWrites.count() * mParam->tTrans;
+    uint64_t avgRdActivity = profReads.get()  * mParam->tTrans;
+    uint64_t avgWrActivity = profWrites.get() * mParam->tTrans;
     // readDq, writeDq: uW, DQ power in current accessed rank, calculate from Whole Chip full usage power
     accPower.dq = ((avgRdActivity * mParam->readDqPin) + (avgWrActivity * mParam->writeDqPin)) * mParam->chipCountPerRank;
     // readTerm, writeTerm: uW, terminate power in the other ranks, calculate from Whole Chip full usage power
@@ -1415,7 +1415,7 @@ uint64_t MemControllerBase::CalcDQTermAcc(uint64_t acc_dq, uint64_t memCycle, ui
 void MemControllerBase::EstimateBandwidth(uint64_t realTime, uint64_t lastTime, bool finish) {
     // Access Count
     assert(realTime > lastTime);
-    uint64_t totalAccesses = profReads.count() + profWrites.count();
+    uint64_t totalAccesses = profReads.get() + profWrites.get();
     uint64_t avgBandwidth = (totalAccesses * cacheLineSize) / realTime;
     uint64_t curBandwidth = (totalAccesses - lastAccesses) * cacheLineSize / (realTime - lastTime);
     maxBandwidth = std::max(maxBandwidth, curBandwidth);

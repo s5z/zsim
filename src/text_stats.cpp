@@ -45,8 +45,6 @@ class TextBackendImpl : public GlobAlloc {
                 for (uint32_t i = 0; i < as->size(); i++) {
                     dumpStat(as->get(i), level+1, out);
                 }
-            } else if (Counter* cs = dynamic_cast<Counter*>(s)) {
-                *out << cs->count() << " # " << cs->desc() << endl;
             } else if (ScalarStat* ss = dynamic_cast<ScalarStat*>(s)) {
                 *out << ss->get() << " # " << ss->desc() << endl;
             } else if (VectorStat* vs = dynamic_cast<VectorStat*>(s)) {
@@ -59,10 +57,6 @@ class TextBackendImpl : public GlobAlloc {
                         *out << i << ": " << vs->count(i) << endl;
                     }
                 }
-            } else if (ProxyStat* ps = dynamic_cast<ProxyStat*>(s)) {
-                *out << ps->stat() << " # " << ps->desc() << endl;
-            } else if (ProxyFuncStat* pfs = dynamic_cast<ProxyFuncStat*>(s)) {
-                *out << pfs->stat() << " # " << pfs->desc() << endl;
             } else {
                 panic("Unrecognized stat type");
             }
