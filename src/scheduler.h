@@ -39,6 +39,7 @@
 #include "g_std/g_unordered_set.h"
 #include "g_std/g_vector.h"
 #include "intrusive_list.h"
+#include "proc_stats.h"
 #include "process_stats.h"
 #include "stats.h"
 #include "zsim.h"
@@ -571,6 +572,7 @@ class Scheduler : public GlobAlloc, public Callee {
             assert(ctx->cid == th->cid);
             assert(ctx->curThread == th);
             assert(targetState == BLOCKED || targetState == QUEUED || targetState == SLEEPING);
+            if (zinfo->procStats) zinfo->procStats->notifyDeschedule();  // FIXME: Interface
             th->state = targetState;
             ctx->state = IDLE;
             ctx->curThread = nullptr;

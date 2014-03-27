@@ -35,7 +35,7 @@ using std::regex; using std::regex_match; using std::string; using std::vector;
 AggregateStat* FilterStatsLevel(const AggregateStat* src, const regex& filter, const char* prefix) {
     string base = prefix? (string(prefix) + src->name() + ".") : ""; //if nullptr prefix, omit our name (we're root)
     vector<Stat*> children;
-    for (uint32_t i = 0; i < src->size(); i++) {
+    for (uint32_t i = 0; i < src->curSize(); i++) {
         Stat* child = src->get(i);
         if (AggregateStat* as = dynamic_cast<AggregateStat*>(child)) {
             AggregateStat* fs = FilterStatsLevel(as, filter, base.c_str());

@@ -39,6 +39,7 @@ class AggregateStat;
 class StatsBackend;
 class ProcessTreeNode;
 class ProcessStats;
+class ProcStats;
 class EventQueue;
 class ContentionSim;
 class EventRecorder;
@@ -137,6 +138,7 @@ struct GlobSimInfo {
     StatsBackend* periodicStatsBackend;
     StatsBackend* eventualStatsBackend;
     ProcessStats* processStats;
+    ProcStats* procStats;
 
     TimeBreakdownStat* profSimTime;
     VectorCounter* profHeartbeats; //global b/c number of processes cannot be inferred at init time; we just size to max

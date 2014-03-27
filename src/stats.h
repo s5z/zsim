@@ -165,9 +165,14 @@ class AggregateStat : public Stat {
         }
 
         Stat* get(uint32_t idx) const {
-            assert(!_isMutable);
             return _children[idx];
         }
+
+        // Access-while-mutable interface
+        uint32_t curSize() const {
+            return _children.size();
+        }
+
 };
 
 /*  General scalar & vector classes */

@@ -56,6 +56,7 @@
 #include "part_repl_policies.h"
 #include "pin_cmd.h"
 #include "prefetcher.h"
+#include "proc_stats.h"
 #include "process_stats.h"
 #include "process_tree.h"
 #include "profile_stats.h"
@@ -936,6 +937,13 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     if (zinfo->sched) zinfo->sched->initStats(zinfo->rootStat);
 
     zinfo->processStats = new ProcessStats(zinfo->rootStat);
+
+    const char* procStatsFilter = config.get<const char*>("sim.procStatsFilter", "");
+    if (strlen(procStatsFilter)) {
+        zinfo->procStats = new ProcStats(zinfo->rootStat, FilterStats(zinfo->rootStat, procStatsFilter));
+    } else {
+        zinfo->procStats = nullptr;
+    }
 
     //It's a global stat, but I want it to be last...
     zinfo->profHeartbeats = new VectorCounter();
