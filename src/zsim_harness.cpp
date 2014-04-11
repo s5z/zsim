@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
 
     while (getNumChildren() > 0) {
         if (!gm_isready()) {
-            sched_yield(); //wait till proc idx 0 initializes everyhting
+            usleep(1000);  // wait till proc idx 0 initializes everyhting
             continue;
         }
 
@@ -416,7 +416,7 @@ int main(int argc, char *argv[]) {
             info("Attached to global heap");
         }
 
-        printHeartbeat(zinfo); //ensure we dump hostname etc on early crashes
+        printHeartbeat(zinfo);  // ensure we dump hostname etc on early crashes
 
         int left = sleep(sleepLength);
         int secsSlept = sleepLength - left;
