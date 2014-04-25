@@ -142,11 +142,20 @@ uint32_t ZArray::preinsert(const Address lineAddr, const MemReq* req, Address* w
             uint32_t hval = hf->hash(w, fringeAddr) & setMask;
             uint32_t pos = w*numSets + hval;
             uint32_t lineId = lookupArray[pos];
+
+            // Logically, you want to do this...
+#if 0
             if (lineId != fringeId) {
                 //info("Candidate %d way %d addr 0x%lx pos %d lineId %d parent %d", numCandidates, w, array[lineId], pos, lineId, fringeStart);
                 candidates[numCandidates++].set(pos, lineId, (int32_t)fringeStart);
                 all_valid &= (array[lineId] != 0);
             }
+#endif
+            // But this compiles as a branch and ILP sucks (this data-dependent branch is long-latency and mispredicted often)
+            // Logically though, this is just checking for whether we're revisiting ourselves, so we can eliminate the branch as follows:
+            candidates[numCandidates].set(pos, lineId, (int32_t)fringeStart);
+            all_valid &= (array[lineId] != 0);  // no problem, if lineId == fringeId the line's already valid, so no harm done
+            numCandidates += (lineId != fringeId); // if lineId == fringeId, the cand we just wrote will be overwritten
         }
         fringeStart++;
     }
