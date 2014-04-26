@@ -153,11 +153,13 @@ static inline void futex_init(volatile uint32_t* lock) {
 static inline void futex_lock(volatile uint32_t* lock) {
     uint32_t c;
     do {
-        for (int i = 0; i < 1000; i++) { //this should be tuned to balance syscall/context-switch and user-level spinning costs
+        for (uint32_t i = 0; i < 5; i++) { //this should be tuned to balance syscall/context-switch and user-level spinning costs
             if (*lock == 0 && __sync_bool_compare_and_swap(lock, 0, 1)) {
                 return;
             }
-            _mm_pause();
+
+            // Do linear backoff instead of a single mm_pause; this reduces ping-ponging, and allows more time for the other hyperthread
+            for (uint32_t j = 1; j < i+2; j++) _mm_pause();
         }
 
         //At this point, we will block
