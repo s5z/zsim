@@ -265,6 +265,7 @@ void OOOCoreRecorder::recordAccess(uint64_t curCycle, uint64_t dispatchCycle, ui
     lastEvProduced->addChild(dDisp, eventRecorder)->addChild(dispEv, eventRecorder)->addChild(dUp, eventRecorder)->addChild(tr.startEvent, eventRecorder);
 
     //Link response
+    assert(respCycle >= tr.respCycle);
     uint32_t downDelay = respCycle - tr.respCycle;
     OOORespEvent* respEvent = new (eventRecorder) OOORespEvent(downDelay, respCycle - gapCycles, this, domain);
     respEvent->id = curId++;
