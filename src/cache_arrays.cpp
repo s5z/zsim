@@ -33,7 +33,7 @@ SetAssocArray::SetAssocArray(uint32_t _numLines, uint32_t _assoc, ReplPolicy* _r
     array = gm_calloc<Address>(numLines);
     numSets = numLines/assoc;
     setMask = numSets - 1;
-    assert(isPow2(numSets));
+    assert_msg(isPow2(numSets), "must have a power of 2 # sets, but you specified %d", numSets);
 }
 
 int32_t SetAssocArray::lookup(const Address lineAddr, const MemReq* req, bool updateReplacement) {
