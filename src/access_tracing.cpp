@@ -133,11 +133,11 @@ AccessTraceWriter::AccessTraceWriter(g_string _fname, uint32_t numChildren) : fn
     assert(offset == size);
     assert(size == sizeof(PackedAccessRecord));
 
-    hid_t ncAttr = H5Acreate(fid, "numChildren", H5T_NATIVE_UINT, H5Screate(H5S_SCALAR), H5P_DEFAULT);
+    hid_t ncAttr = H5Acreate2(fid, "numChildren", H5T_NATIVE_UINT, H5Screate(H5S_SCALAR), H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(ncAttr, H5T_NATIVE_UINT, &numChildren);
     H5Aclose(ncAttr);
 
-    hid_t fAttr = H5Acreate(fid, "finished", H5T_NATIVE_UINT, H5Screate(H5S_SCALAR), H5P_DEFAULT);
+    hid_t fAttr = H5Acreate2(fid, "finished", H5T_NATIVE_UINT, H5Screate(H5S_SCALAR), H5P_DEFAULT, H5P_DEFAULT);
     uint32_t finished = 0;
     H5Awrite(fAttr, H5T_NATIVE_UINT, &finished);
     H5Aclose(fAttr);
