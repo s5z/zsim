@@ -225,7 +225,9 @@ uint64_t MESITopCC::sendInvalidates(Address lineAddr, uint32_t lineId, InvType t
         uint32_t sentInvs = 0;
         for (uint32_t c = 0; c < numChildren; c++) {
             if (e->sharers[c]) {
-                uint64_t respCycle = children[c]->invalidate(lineAddr, type, reqWriteback, cycle, srcId);
+                InvReq invReq = {lineAddr, type, reqWriteback, cycle, srcId};
+                uint64_t respCycle = children[c]->invalidate(invReq);
+                //uint64_t respCycle = children[c]->invalidate(lineAddr, type, reqWriteback, cycle, srcId);
                 respCycle += childrenRTTs[c];
                 maxCycle = MAX(respCycle, maxCycle);
                 if (type == INV) e->sharers[c] = false;

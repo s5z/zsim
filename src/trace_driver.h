@@ -91,13 +91,13 @@ class TraceDriverProxyCache : public BaseCache {
 
         void setParents(uint32_t _childId, const g_vector<MemObject*>& parents, Network* network) {id = _childId; assert(parents.size() == 1); parent = parents[0];}; //FIXME: Support multi-banked caches...
         void setChildren(const g_vector<BaseCache*>& children, Network* network) {panic("Should not be called, this must be terminal");};
-        
+
         MemObject* getParent() const {return parent;}
         void setDriver(TraceDriver* driver) {drv = driver;}
 
         uint64_t access(MemReq& req) {panic("Should never be called");}
-        uint64_t invalidate(Address lineAddr, InvType type, bool* reqWriteback, uint64_t reqCycle, uint32_t srcId) {
-            return drv->invalidate(id, lineAddr, type, reqWriteback, reqCycle, srcId);
+        uint64_t invalidate(InvReq req) {
+            return drv->invalidate(id, req.lineAddr, req.type, req.reqWriteback, req.reqCycle, req.srcId);
         }
 };
 

@@ -110,7 +110,7 @@ class StreamPrefetcher : public BaseCache {
         void setChildren(const g_vector<BaseCache*>& children, Network* network);
 
         uint64_t access(MemReq& req);
-        uint64_t invalidate(Address lineAddr, InvType type, bool* reqWriteback, uint64_t reqCycle, uint32_t srcId);
+        uint64_t invalidate(InvReq invReq);
 };
 
 #endif  // PREFETCHER_H_

@@ -149,15 +149,17 @@ class FilterCache : public Cache {
         }
 
         //NOTE: reqWriteback is pulled up to true, but not pulled down to false.
-        uint64_t invalidate(Address lineAddr, InvType type, bool* reqWriteback, uint64_t cycle, uint32_t srcId) {
+        //uint64_t invalidate(Address lineAddr, InvType type, bool* reqWriteback, uint64_t cycle, uint32_t srcId) {
+        uint64_t invalidate(InvReq invReq) {
             futex_lock(&filterLock);
-            uint32_t idx = lineAddr & setMask; //works because of how virtual<->physical is done...
-            if ((filterArray[idx].rdAddr | procMask) == lineAddr) { //FIXME: If another process calls invalidate(), procMask will not match even though we may be doing a capacity-induced invalidation!
+            uint32_t idx = invReq.lineAddr & setMask; //works because of how virtual<->physical is done...
+            if ((filterArray[idx].rdAddr | procMask) == invReq.lineAddr) { //FIXME: If another process calls invalidate(), procMask will not match even though we may be doing a capacity-induced invalidation!
                 filterArray[idx].wrAddr = -1L;
                 filterArray[idx].rdAddr = -1L;
             }
             futex_unlock(&filterLock);
-            uint64_t respCycle = Cache::invalidate(lineAddr, type, reqWriteback, cycle, srcId);
+            uint64_t respCycle = Cache::invalidate(invReq);
+            //uint64_t respCycle = Cache::invalidate(lineAddr, type, reqWriteback, cycle, srcId);
             return respCycle;
         }
 

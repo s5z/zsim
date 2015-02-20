@@ -104,6 +104,15 @@ struct MemReq {
     inline bool is (Flag f) const {return flags & f;}
 };
 
+/* Invalidation/downgrade request */
+struct InvReq {
+    Address lineAddr;
+    InvType type;
+    bool* reqWriteback;  // should start being false, is pulled up to true
+    uint64_t reqCycle;
+    uint32_t srcId;
+};
+
 /** INTERFACES **/
 
 class AggregateStat;
@@ -123,7 +132,7 @@ class BaseCache : public MemObject {
     public:
         virtual void setParents(uint32_t _childId, const g_vector<MemObject*>& parents, Network* network) = 0;
         virtual void setChildren(const g_vector<BaseCache*>& children, Network* network) = 0;
-        virtual uint64_t invalidate(Address lineAddr, InvType type, bool* reqWriteback, uint64_t reqCycle, uint32_t srcId) = 0;
+        virtual uint64_t invalidate(InvReq invReq) = 0;
 };
 
 #endif  // MEMORY_HIERARCHY_H_
