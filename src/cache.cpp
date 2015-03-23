@@ -26,6 +26,10 @@
 #include "cache.h"
 #include "hash.h"
 
+#include "event_recorder.h"
+#include "timing_event.h"
+#include "zsim.h"
+
 Cache::Cache(uint32_t _numLines, CC* _cc, CacheArray* _array, ReplPolicy* _rp, uint32_t _accLat, uint32_t _invLat, const g_string& _name)
     : cc(_cc), array(_array), rp(_rp), numLines(_numLines), accLat(_accLat), invLat(_invLat), name(_name) {}
 
@@ -74,8 +78,47 @@ uint64_t Cache::access(MemReq& req) {
 
             array->postinsert(req.lineAddr, &req, lineId); //do the actual insertion. NOTE: Now we must split insert into a 2-phase thing because cc unlocks us.
         }
+        // Enforce single-record invariant: Writeback access may have a timing
+        // record. If so, read it.
+        EventRecorder* evRec = zinfo->eventRecorders[req.srcId];
+        TimingRecord wbAcc;
+        wbAcc.startEvent = nullptr;
+        if (unlikely(evRec && evRec->numRecords())) {
+            assert(evRec->numRecords() == 1);
+            wbAcc = evRec->getRecord(0);
+            evRec->popRecord();
+        }
 
         respCycle = cc->processAccess(req, lineId, respCycle);
+
+        // Access may have generated another timing record. If *both* access
+        // and wb have records, stitch them together
+        if (unlikely(wbAcc.startEvent != nullptr)) {
+            if (!evRec->numRecords()) {
+                // Downstream should not care about endEvent for PUTs
+                wbAcc.endEvent = nullptr;
+                evRec->pushRecord(wbAcc);
+            } else {
+                // Connect both events
+                TimingRecord acc = evRec->getRecord(0);
+                assert(wbAcc.reqCycle >= req.cycle);
+                assert(acc.reqCycle >= req.cycle);
+                evRec->popRecord();
+                DelayEvent* startEv = new (evRec) DelayEvent(0);
+                DelayEvent* dWbEv = new (evRec) DelayEvent(wbAcc.reqCycle - req.cycle);
+                DelayEvent* dAccEv = new (evRec) DelayEvent(acc.reqCycle - req.cycle);
+                startEv->setMinStartCycle(req.cycle);
+                dWbEv->setMinStartCycle(req.cycle);
+                dAccEv->setMinStartCycle(req.cycle);
+                startEv->addChild(dWbEv, evRec)->addChild(wbAcc.startEvent, evRec);
+                startEv->addChild(dAccEv, evRec)->addChild(acc.startEvent, evRec);
+
+                acc.reqCycle = req.cycle;
+                acc.startEvent = startEv;
+                // endEvent / endCycle stay the same; wbAcc's endEvent not connected
+                evRec->pushRecord(acc);
+            }
+        }
     }
 
     cc->endAccess(req);
