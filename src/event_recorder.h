@@ -54,7 +54,6 @@ class EventRecorder : public GlobAlloc {
         PhaseSlabAlloc slabAlloc;
         TimingRecord tr;
         CrossingStack crossingStack;
-        //CoreRecorder* coreRec;
         uint32_t srcId;
 
         volatile uint64_t lastGapCycles;
@@ -100,14 +99,6 @@ class EventRecorder : public GlobAlloc {
         inline size_t hasRecord() const {
             return tr.isValid();
         }
-
-        /*TimingRecord getRecord() {
-            return tr;
-        }
-
-        inline void clearRecords() {
-            trStack.clear();
-        }*/
 
         //Called by crossing events
         inline uint64_t getSlack(uint64_t origStartCycle) const {
