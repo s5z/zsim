@@ -116,52 +116,32 @@ void CoreRecorder::notifyLeave(uint64_t curCycle) {
 }
 
 void CoreRecorder::recordAccess(uint64_t startCycle) {
-#if 0
-    assert(eventRecorder.numRecords() <= 2);
-    TimingRecord tr = eventRecorder.getRecord(0);
+    assert(eventRecorder.hasRecord());
+    TimingRecord tr = eventRecorder.popRecord();
     TimingEvent* origPrevResp = prevRespEvent;
 
-    if (tr.type == PUTS || tr.type == PUTX) {
-        //info("Handling PUT+GET");
-        assert(eventRecorder.numRecords() == 2);
-        TimingRecord tr1 = eventRecorder.getRecord(1);
-        assert(tr1.type == GETX || tr1.type == GETS);
-        assert(startCycle >= prevRespCycle);
-        assert(tr1.reqCycle >= startCycle);
-        assert(tr.reqCycle >= startCycle);
+    assert(startCycle >= prevRespCycle);
+    assert(tr.reqCycle >= startCycle);
 
-        uint64_t delay = startCycle - prevRespCycle;
-        TimingCoreEvent* ev = new (eventRecorder) TimingCoreEvent(delay, prevRespCycle - gapCycles, this);
-        ev->setMinStartCycle(prevRespCycle);
-        prevRespEvent->addChild(ev, eventRecorder);
-        DelayEvent* dr = new (eventRecorder) DelayEvent(tr.reqCycle-startCycle);
-        DelayEvent* dr1 = new (eventRecorder) DelayEvent(tr1.reqCycle-startCycle);
-        dr->setMinStartCycle(startCycle);
-        dr1->setMinStartCycle(startCycle);
-        ev->addChild(dr, eventRecorder)->addChild(tr.startEvent, eventRecorder);
-        ev->addChild(dr1, eventRecorder)->addChild(tr1.startEvent, eventRecorder);
-
-        //tr.endEvent not linked to anything
-        prevRespEvent = tr1.endEvent;
-        prevRespCycle = tr1.respCycle;
-
-    } else {
-        //info("Handling single GET");
-        assert(tr.type == GETX || tr.type == GETS);
-        assert(eventRecorder.numRecords() == 1);
+    if (IsGet(tr.type)) {
         uint64_t delay = tr.reqCycle - prevRespCycle;
         TimingEvent* ev = new (eventRecorder) TimingCoreEvent(delay, prevRespCycle - gapCycles, this);
         ev->setMinStartCycle(prevRespCycle);
         prevRespEvent->addChild(ev, eventRecorder)->addChild(tr.startEvent, eventRecorder);
         prevRespEvent = tr.endEvent;
         prevRespCycle = tr.respCycle;
+        assert(prevRespEvent);
+    } else {
+        assert(IsPut(tr.type));
+        // Link previous response and this req directly (don't even create a new event)
+        DelayEvent* dr = new (eventRecorder) DelayEvent(tr.reqCycle - prevRespCycle);
+        dr->setMinStartCycle(prevRespCycle);
+        prevRespEvent->addChild(dr, eventRecorder)->addChild(tr.startEvent, eventRecorder);
+        //tr.endEvent not linked to anything, it's a PUT
     }
 
     origPrevResp->produceCrossings(&eventRecorder);
     eventRecorder.getCrossingStack().clear();
-    eventRecorder.clearRecords();
-#endif
-    panic("Needs to be ported to new eventRecorder interface");
 }
 
 
