@@ -55,7 +55,8 @@ class CoreRecorder {
         EventRecorder eventRecorder;
         uint64_t prevRespCycle;
         TimingEvent* prevRespEvent;
-        TimingCoreEvent* lastEventSimulated;
+        uint64_t lastEventSimulatedStartCycle;
+        uint64_t lastEventSimulatedOrigStartCycle;
 
         //Cycle accounting
         uint64_t totalGapCycles; //does not include gapCycles
