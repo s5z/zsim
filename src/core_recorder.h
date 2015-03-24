@@ -74,7 +74,7 @@ class CoreRecorder {
 
         //This better be inlined 100% of the time, it's called on EVERY access
         inline void record(uint64_t startCycle) {
-            if (unlikely(eventRecorder.numRecords())) recordAccess(startCycle);
+            if (unlikely(eventRecorder.hasRecord())) recordAccess(startCycle);
         }
 
         //Methods called between the bound and weave phases

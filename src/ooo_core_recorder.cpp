@@ -225,8 +225,8 @@ void OOOCoreRecorder::notifyLeave(uint64_t curCycle) {
 }
 
 void OOOCoreRecorder::recordAccess(uint64_t curCycle, uint64_t dispatchCycle, uint64_t respCycle) {
-    assert(eventRecorder.numRecords() == 1);
-    TimingRecord tr = eventRecorder.getRecord(0);
+    assert(eventRecorder.hasRecord());
+    TimingRecord tr = eventRecorder.popRecord();
 
     if (IsGet(tr.type)) {
         //info("Handling GET: curCycle %ld ev(reqCycle %ld respCycle %ld) respCycle %ld", curCycle, tr.reqCycle, tr.respCycle, respCycle);
@@ -282,8 +282,6 @@ void OOOCoreRecorder::recordAccess(uint64_t curCycle, uint64_t dispatchCycle, ui
     // For multi-domain
     lastEvProduced->produceCrossings(&eventRecorder);
     eventRecorder.getCrossingStack().clear();
-
-    eventRecorder.clearRecords();
 }
 
 

@@ -114,14 +114,12 @@ void TimingCache::initStats(AggregateStat* parentStat) {
 uint64_t TimingCache::access(MemReq& req) {
     EventRecorder* evRec = zinfo->eventRecorders[req.srcId];
     assert_msg(evRec, "TimingCache is not connected to TimingCore");
-    uint32_t initialRecords = evRec->numRecords();
 
-    bool hasWritebackRecord = false;
-    TimingRecord writebackRecord;
-    bool hasAccessRecord = false;
-    TimingRecord accessRecord;
+    TimingRecord writebackRecord, accessRecord;
+    writebackRecord.clear();
+    accessRecord.clear();
     uint64_t evDoneCycle = 0;
-    
+
     uint64_t respCycle = req.cycle;
     bool skipAccess = cc->startAccess(req); //may need to skip access due to races (NOTE: may change req.type!)
     if (likely(!skipAccess)) {
@@ -143,31 +141,21 @@ uint64_t TimingCache::access(MemReq& req) {
 
             array->postinsert(req.lineAddr, &req, lineId); //do the actual insertion. NOTE: Now we must split insert into a 2-phase thing because cc unlocks us.
 
-            if (evRec->numRecords() > initialRecords) {
-                assert_msg(evRec->numRecords() == initialRecords + 1, "evRec records on eviction %ld", evRec->numRecords());
-                writebackRecord = evRec->getRecord(initialRecords);
-                hasWritebackRecord = true;
-                evRec->popRecord();
-            }
+            if (evRec->hasRecord()) writebackRecord = evRec->popRecord();
         }
 
         uint64_t getDoneCycle = respCycle;
         respCycle = cc->processAccess(req, lineId, respCycle, &getDoneCycle);
 
-        if (evRec->numRecords() > initialRecords) {
-            assert_msg(evRec->numRecords() == initialRecords + 1, "evRec records %ld", evRec->numRecords());
-            accessRecord = evRec->getRecord(initialRecords);
-            hasAccessRecord = true;
-            evRec->popRecord();
-        }
+        if (evRec->hasRecord()) accessRecord = evRec->popRecord();
 
         // At this point we have all the info we need to hammer out the timing record
         TimingRecord tr = {req.lineAddr << lineBits, req.cycle, respCycle, req.type, nullptr, nullptr}; //note the end event is the response, not the wback
 
         if (getDoneCycle - req.cycle == accLat) {
             // Hit
-            assert(!hasWritebackRecord);
-            assert(!hasAccessRecord);
+            assert(!writebackRecord.isValid());
+            assert(!accessRecord.isValid());
             uint64_t hitLat = respCycle - req.cycle; // accLat + invLat
             HitEvent* ev = new (evRec) HitEvent(this, hitLat, domain);
             ev->setMinStartCycle(req.cycle);
@@ -223,12 +211,12 @@ uint64_t TimingCache::access(MemReq& req) {
             };
 
             // Get path
-            connect(hasAccessRecord? &accessRecord : nullptr, mse, mre, req.cycle + accLat, getDoneCycle);
+            connect(accessRecord.isValid()? &accessRecord : nullptr, mse, mre, req.cycle + accLat, getDoneCycle);
             mre->addChild(mwe, evRec);
 
             // Eviction path
             if (evDoneCycle) {
-                connect(hasWritebackRecord? &writebackRecord : nullptr, mse, mwe, req.cycle + accLat, evDoneCycle);
+                connect(writebackRecord.isValid()? &writebackRecord : nullptr, mse, mwe, req.cycle + accLat, evDoneCycle);
             }
 
             // Replacement path
@@ -289,7 +277,7 @@ uint64_t TimingCache::highPrioAccess(uint64_t cycle) {
 
 /* The simple things you see here are complicated,
  * I look pretty young but I'm just back-dated...
- * 
+ *
  * To make this efficient, we do not want to keep priority queues. Instead, a
  * low-priority access is granted if there was a free slot on the *previous*
  * cycle. This means that low-prio accesses should be post-dated by 1 cycle.

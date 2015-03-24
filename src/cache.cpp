@@ -82,28 +82,25 @@ uint64_t Cache::access(MemReq& req) {
         // record. If so, read it.
         EventRecorder* evRec = zinfo->eventRecorders[req.srcId];
         TimingRecord wbAcc;
-        wbAcc.startEvent = nullptr;
-        if (unlikely(evRec && evRec->numRecords())) {
-            assert(evRec->numRecords() == 1);
-            wbAcc = evRec->getRecord(0);
-            evRec->popRecord();
+        wbAcc.clear();
+        if (unlikely(evRec && evRec->hasRecord())) {
+            wbAcc = evRec->popRecord();
         }
 
         respCycle = cc->processAccess(req, lineId, respCycle);
 
         // Access may have generated another timing record. If *both* access
         // and wb have records, stitch them together
-        if (unlikely(wbAcc.startEvent != nullptr)) {
-            if (!evRec->numRecords()) {
+        if (unlikely(wbAcc.isValid())) {
+            if (!evRec->hasRecord()) {
                 // Downstream should not care about endEvent for PUTs
                 wbAcc.endEvent = nullptr;
                 evRec->pushRecord(wbAcc);
             } else {
                 // Connect both events
-                TimingRecord acc = evRec->getRecord(0);
+                TimingRecord acc = evRec->popRecord();
                 assert(wbAcc.reqCycle >= req.cycle);
                 assert(acc.reqCycle >= req.cycle);
-                evRec->popRecord();
                 DelayEvent* startEv = new (evRec) DelayEvent(0);
                 DelayEvent* dWbEv = new (evRec) DelayEvent(wbAcc.reqCycle - req.cycle);
                 DelayEvent* dAccEv = new (evRec) DelayEvent(acc.reqCycle - req.cycle);

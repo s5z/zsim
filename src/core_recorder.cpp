@@ -116,6 +116,7 @@ void CoreRecorder::notifyLeave(uint64_t curCycle) {
 }
 
 void CoreRecorder::recordAccess(uint64_t startCycle) {
+#if 0
     assert(eventRecorder.numRecords() <= 2);
     TimingRecord tr = eventRecorder.getRecord(0);
     TimingEvent* origPrevResp = prevRespEvent;
@@ -159,6 +160,8 @@ void CoreRecorder::recordAccess(uint64_t startCycle) {
     origPrevResp->produceCrossings(&eventRecorder);
     eventRecorder.getCrossingStack().clear();
     eventRecorder.clearRecords();
+#endif
+    panic("Needs to be ported to new eventRecorder interface");
 }
 
 

@@ -40,6 +40,9 @@ struct TimingRecord {
     AccessType type;
     TimingEvent* startEvent;
     TimingEvent* endEvent;
+
+    bool isValid() const { return startEvent; }
+    void clear() { startEvent = nullptr; }
 };
 
 //class CoreRecorder;
@@ -49,7 +52,7 @@ typedef g_vector<CrossingEvent*> CrossingStack;
 class EventRecorder : public GlobAlloc {
     private:
         PhaseSlabAlloc slabAlloc;
-        g_vector<TimingRecord> trStack;
+        TimingRecord tr;
         CrossingStack crossingStack;
         //CoreRecorder* coreRec;
         uint32_t srcId;
@@ -60,7 +63,9 @@ class EventRecorder : public GlobAlloc {
         PAD();
 
     public:
-        EventRecorder() {}
+        EventRecorder() {
+            tr.clear();
+        }
 
         //Alloc interface
 
@@ -79,25 +84,30 @@ class EventRecorder : public GlobAlloc {
 
         //Event recording interface
 
-        void pushRecord(const TimingRecord& tr) {
-            trStack.push_back(tr);
+        void pushRecord(const TimingRecord& rec) {
+            assert(!tr.isValid());
+            tr = rec;
+            assert(tr.isValid());
         }
 
-        void popRecord() {
-            trStack.pop_back();
+        // Inline to avoid extra copy
+        inline TimingRecord popRecord() __attribute__((always_inline)) {
+            TimingRecord rec = tr;
+            tr.clear();
+            return rec;
         }
 
-        inline size_t numRecords() const {
-            return trStack.size();
+        inline size_t hasRecord() const {
+            return tr.isValid();
         }
 
-        TimingRecord getRecord(size_t num) {
-            return trStack[num];
+        /*TimingRecord getRecord() {
+            return tr;
         }
 
         inline void clearRecords() {
             trStack.clear();
-        }
+        }*/
 
         //Called by crossing events
         inline uint64_t getSlack(uint64_t origStartCycle) const {

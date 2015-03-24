@@ -90,7 +90,7 @@ class OOOCoreRecorder {
 
         //This better be inlined 100% of the time, it's called on EVERY access
         inline void record(uint64_t curCycle, uint64_t dispatchCycle, uint64_t respCycle) {
-            if (unlikely(eventRecorder.numRecords())) recordAccess(curCycle, dispatchCycle, respCycle);
+            if (unlikely(eventRecorder.hasRecord())) recordAccess(curCycle, dispatchCycle, respCycle);
         }
 
         //Methods called between the bound and weave phases
