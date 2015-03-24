@@ -47,7 +47,7 @@
 
 // Uncomment to immediately scrub slabs (to 0) and freed elems (to -1).
 // This makes use-after-free errors obvious.
-#define DEBUG_SLAB_ALLOC
+//#define DEBUG_SLAB_ALLOC
 
 namespace slab {
 
@@ -122,11 +122,11 @@ class SlabAlloc {
 
     private:
         void allocSlab() {
+            scoped_mutex sm(freeLock);
             if (!freeList.empty()) {
                 curSlab = freeList.back();
                 freeList.pop_back();
                 assert(curSlab);
-                curSlab->clear();
             } else {
                 assert(sizeof(Slab) == SLAB_SIZE);
                 curSlab = gm_memalign<Slab>(sizeof(Slab));
@@ -134,18 +134,21 @@ class SlabAlloc {
                 curSlab->init(this);  // NOTE: Slab is POD
             }
             liveSlabs++;
-            info("allocated slab, %d live, %ld in freeList", liveSlabs, freeList.size());
+            //info("allocated slab %p, %d live, %ld in freeList", curSlab, liveSlabs, freeList.size());
         }
 
         void freeSlab(Slab* s) {
             scoped_mutex sm(freeLock);
-            assert(liveSlabs);
+            //info("freeing slab %p, %d live, %ld in freeList", s, liveSlabs, freeList.size());
             s->clear();
 #ifdef DEBUG_SLAB_ALLOC
             memset(s->buf, -1, sizeof(s->buf));
 #endif
-            freeList.push_back(s);
-            liveSlabs--;
+            if (s != curSlab) {
+                freeList.push_back(s);
+                liveSlabs--;
+            }
+            assert(liveSlabs);  // at least curSlab
         }
 
         friend struct Slab;
