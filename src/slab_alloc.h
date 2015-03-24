@@ -35,6 +35,7 @@
  * derive the pointer of their slab.
  */
 
+#include <deque>
 #include <stddef.h>
 #include <stdint.h>
 #include "g_std/g_vector.h"
@@ -43,6 +44,10 @@
 
 #define SLAB_SIZE (1<<16)  // 64KB; must be a power of two
 #define SLAB_MASK (~(SLAB_SIZE - 1))
+
+// Uncomment to immediately scrub slabs (to 0) and freed elems (to -1).
+// This makes use-after-free errors obvious.
+#define DEBUG_SLAB_ALLOC
 
 namespace slab {
 
@@ -62,7 +67,6 @@ struct Slab {  // POD type (no constructor)
     void clear() {
         liveElems = 0;
         usedBytes = 0;
-        //memset(buf, 0, sizeof(buf)); //zeroing the slab can help chase memory corruption bugs
     }
 
     void* alloc(uint32_t bytes) {
@@ -107,6 +111,7 @@ class SlabAlloc {
                 ptr = curSlab->alloc(sz);
                 assert(ptr);
             }
+            assert((((uintptr_t)ptr) & SLAB_MASK) == (uintptr_t)curSlab)
             return ptr;
         }
 
@@ -135,6 +140,10 @@ class SlabAlloc {
         void freeSlab(Slab* s) {
             scoped_mutex sm(freeLock);
             assert(liveSlabs);
+            s->clear();
+#ifdef DEBUG_SLAB_ALLOC
+            memset(s->buf, -1, sizeof(s->buf));
+#endif
             freeList.push_back(s);
             liveSlabs--;
         }
@@ -151,7 +160,10 @@ inline void Slab::freeElem() {
     }
 }
 
-inline void freeElem(void* elem) {
+inline void freeElem(void* elem, size_t minSz) {
+#ifdef DEBUG_SLAB_ALLOC
+    memset(elem, 0, minSz);
+#endif
     Slab* s = (Slab*)(((uintptr_t)elem) & SLAB_MASK);
     s->freeElem();
 }
