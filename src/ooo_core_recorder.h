@@ -65,13 +65,20 @@ class OOOCoreRecorder {
         //Recording phase
         OOOIssueEvent* lastEvProduced;
 
-        struct CompareRespEvents : public std::binary_function<OOORespEvent*, OOORespEvent*, bool> {
-            bool operator()(OOORespEvent* lhs, OOORespEvent* rhs) const;
+        // Future response tracking
+        struct FutureResponse {
+            uint64_t zllStartCycle;
+            OOORespEvent* ev;  // may be stale if we've gone over zllStartCycle
         };
 
-        std::priority_queue<OOORespEvent*, g_vector<OOORespEvent*>, CompareRespEvents> futureResponses;
+        struct CompareRespEvents : public std::binary_function<const FutureResponse&, const FutureResponse&, bool> {
+            bool operator()(const FutureResponse& lhs, const FutureResponse& rhs) const;
+        };
 
-        OOOIssueEvent* lastEvSimulated;
+        std::priority_queue<FutureResponse, g_vector<FutureResponse>, CompareRespEvents> futureResponses;
+
+        uint64_t lastEvSimulatedZllStartCycle;
+        uint64_t lastEvSimulatedStartCycle;
 
         //Cycle accounting
         uint64_t totalGapCycles; //does not include gapCycles
@@ -98,7 +105,7 @@ class OOOCoreRecorder {
         uint64_t cSimEnd(uint64_t curCycle); //returns updated curCycle
 
         //Methods called in the weave phase
-        inline void reportIssueEventSimulated(OOOIssueEvent* ev);
+        inline void reportIssueEventSimulated(OOOIssueEvent* ev, uint64_t startCycle);
 
         //Misc
         inline EventRecorder* getEventRecorder() {return &eventRecorder;}
