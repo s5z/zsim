@@ -225,69 +225,61 @@ void OOOCoreRecorder::notifyLeave(uint64_t curCycle) {
 }
 
 void OOOCoreRecorder::recordAccess(uint64_t curCycle, uint64_t dispatchCycle, uint64_t respCycle) {
-    assert(eventRecorder.numRecords() <= 2);
+    assert(eventRecorder.numRecords() == 1);
+    TimingRecord tr = eventRecorder.getRecord(0);
 
-    //If numRecords == 2, we have PUT (at 0) + GET (at 1) ; if 1, we have a single GET (at record 0)
+    if (IsGet(tr.type)) {
+        //info("Handling GET: curCycle %ld ev(reqCycle %ld respCycle %ld) respCycle %ld", curCycle, tr.reqCycle, tr.respCycle, respCycle);
 
-    //1. Handle GET
-    uint32_t getIdx = eventRecorder.numRecords()-1;
-    TimingRecord tr = eventRecorder.getRecord(getIdx);
-    assert(tr.type == GETX || tr.type == GETS);
+        addIssueEvent(curCycle);
 
-    //info("Handling: curCycle %ld ev(reqCycle %ld respCycle %ld) respCycle %ld", curCycle, tr.reqCycle, tr.respCycle, respCycle);
+        //Delay
+        DelayEvent* dDisp = new (eventRecorder) DelayEvent(dispatchCycle - curCycle);
+        dDisp->setMinStartCycle(curCycle);
 
-    addIssueEvent(curCycle);
+        //Dispatch event
+        OOODispatchEvent* dispEv = new (eventRecorder) OOODispatchEvent(/*dispatchCycle - curCycle*/ 0, dispatchCycle);
+        dispEv->setMinStartCycle(dispatchCycle);
+        dispEv->id = curId++;
 
-    //Delay
-    DelayEvent* dDisp = new (eventRecorder) DelayEvent(dispatchCycle - curCycle);
-    dDisp->setMinStartCycle(curCycle);
-
-
-    //Dispatch event
-    OOODispatchEvent* dispEv = new (eventRecorder) OOODispatchEvent(/*dispatchCycle - curCycle*/ 0, dispatchCycle);
-    dispEv->setMinStartCycle(dispatchCycle);
-    dispEv->id = curId++;
-
-    uint64_t zllDispatchCycle = dispatchCycle - gapCycles;
+        uint64_t zllDispatchCycle = dispatchCycle - gapCycles;
 #if 1
-    //Traverse min heap, link with preceding resps...
-    g_vector<OOORespEvent*>& rVec =  *((g_vector<OOORespEvent*>*) (&futureResponses)); //FIXME!!! Unsafe, works just because of prio_queue's layout; should use a tree or write a traverse_heap function...
-    for (uint32_t i = 0; i < rVec.size(); i++) {
-        if (rVec[i]->zllStartCycle < zllDispatchCycle) {
-            DelayEvent* dl = new (eventRecorder) DelayEvent(zllDispatchCycle - rVec[i]->zllStartCycle);
-            rVec[i]->addChild(dl, eventRecorder)->addChild(dispEv, eventRecorder);
+        //Traverse min heap, link with preceding resps...
+        g_vector<OOORespEvent*>& rVec =  *((g_vector<OOORespEvent*>*) (&futureResponses)); //FIXME!!! Unsafe, works just because of prio_queue's layout; should use a tree or write a traverse_heap function...
+        for (uint32_t i = 0; i < rVec.size(); i++) {
+            if (rVec[i]->zllStartCycle < zllDispatchCycle) {
+                DelayEvent* dl = new (eventRecorder) DelayEvent(zllDispatchCycle - rVec[i]->zllStartCycle);
+                rVec[i]->addChild(dl, eventRecorder)->addChild(dispEv, eventRecorder);
+            }
         }
-    }
 #endif
-    //Link request
-    DelayEvent* dUp = new (eventRecorder) DelayEvent(tr.reqCycle - dispatchCycle); //TODO: remove, postdelay in dispatch...
-    dUp->setMinStartCycle(dispatchCycle);
-    lastEvProduced->addChild(dDisp, eventRecorder)->addChild(dispEv, eventRecorder)->addChild(dUp, eventRecorder)->addChild(tr.startEvent, eventRecorder);
+        //Link request
+        DelayEvent* dUp = new (eventRecorder) DelayEvent(tr.reqCycle - dispatchCycle); //TODO: remove, postdelay in dispatch...
+        dUp->setMinStartCycle(dispatchCycle);
+        lastEvProduced->addChild(dDisp, eventRecorder)->addChild(dispEv, eventRecorder)->addChild(dUp, eventRecorder)->addChild(tr.startEvent, eventRecorder);
 
-    //Link response
-    assert(respCycle >= tr.respCycle);
-    uint32_t downDelay = respCycle - tr.respCycle;
-    OOORespEvent* respEvent = new (eventRecorder) OOORespEvent(downDelay, respCycle - gapCycles, this, domain);
-    respEvent->id = curId++;
-    respEvent->setMinStartCycle(respCycle);
-    tr.endEvent->addChild(respEvent, eventRecorder);
-    TRACE_MSG("Adding resp zllCycle %ld delay %ld", respCycle - gapCycles, respCycle-curCycle);
-    futureResponses.push(respEvent);
-
-    //2. If we have it, handle PUT
-    if (eventRecorder.numRecords() == 2) {
-        TimingRecord trPut = eventRecorder.getRecord(0);
-        assert(trPut.type == PUTX || trPut.type == PUTS);
+        //Link response
+        assert(respCycle >= tr.respCycle);
+        uint32_t downDelay = respCycle - tr.respCycle;
+        OOORespEvent* respEvent = new (eventRecorder) OOORespEvent(downDelay, respCycle - gapCycles, this, domain);
+        respEvent->id = curId++;
+        respEvent->setMinStartCycle(respCycle);
+        tr.endEvent->addChild(respEvent, eventRecorder);
+        TRACE_MSG("Adding resp zllCycle %ld delay %ld", respCycle - gapCycles, respCycle-curCycle);
+        futureResponses.push(respEvent);
+    } else {
+        info("Handling PUT: curCycle %ld", curCycle);
+        assert(IsPut(tr.type));
 
         //Link request
-        DelayEvent* putUp = new (eventRecorder) DelayEvent(trPut.reqCycle-curCycle);
+        DelayEvent* putUp = new (eventRecorder) DelayEvent(tr.reqCycle-curCycle);
         putUp->setMinStartCycle(curCycle);
-        lastEvProduced->addChild(putUp, eventRecorder)->addChild(trPut.startEvent, eventRecorder);
+        lastEvProduced->addChild(putUp, eventRecorder)->addChild(tr.startEvent, eventRecorder);
 
-        //trPut's endEvent not linked to anything, it's a wback and we should not capture it
+        //PUT's endEvent not linked to anything, it's a wback in some cache above and we should not capture it
     }
 
-    //For multi-domain
+    // For multi-domain
     lastEvProduced->produceCrossings(&eventRecorder);
     eventRecorder.getCrossingStack().clear();
 

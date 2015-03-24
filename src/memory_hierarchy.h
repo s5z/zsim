@@ -70,6 +70,10 @@ const char* AccessTypeName(AccessType t);
 const char* InvTypeName(InvType t);
 const char* MESIStateName(MESIState s);
 
+inline bool IsGet(AccessType t) { return t == GETS || t == GETX; }
+inline bool IsPut(AccessType t) { return t == PUTS || t == PUTX; }
+
+
 /* Memory request */
 struct MemReq {
     Address lineAddr;
