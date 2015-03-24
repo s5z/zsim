@@ -182,6 +182,19 @@ class TimingEvent {
                 (*childPtr)->parentDone(doneCycle+postDelay);
             };
             visitChildren< decltype(vLambda) >(vLambda);
+
+            // Free timing event blocks and ourselves
+            if (numChildren > 1) {
+                TimingEventBlock* teb = children;
+                while (teb) {
+                    TimingEventBlock* next = teb->next;
+                    slab::freeElem((void*)teb);
+                    teb = next;
+                }
+                children = nullptr;
+                numChildren = 0;
+            }
+            slab::freeElem((void*)this);
         }
 
         void produceCrossings(EventRecorder* evRec);

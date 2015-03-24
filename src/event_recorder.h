@@ -28,7 +28,8 @@
 
 #include "g_std/g_vector.h"
 #include "memory_hierarchy.h"
-#include "phase_slab_alloc.h"
+#include "pad.h"
+#include "slab_alloc.h"
 
 class TimingEvent;
 
@@ -51,7 +52,7 @@ typedef g_vector<CrossingEvent*> CrossingStack;
 
 class EventRecorder : public GlobAlloc {
     private:
-        PhaseSlabAlloc slabAlloc;
+        slab::SlabAlloc slabAlloc;
         TimingRecord tr;
         CrossingStack crossingStack;
         uint32_t srcId;
