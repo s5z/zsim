@@ -187,7 +187,7 @@ void ContentionSim::enqueue(TimingEvent* ev, uint64_t cycle) {
     assert(ev);
     assert_msg(cycle >= lastLimit, "Enqueued event before last limit! cycle %ld min %ld", cycle, lastLimit);
     //Hacky, but helpful to chase events scheduled too far ahead due to bugs (e.g., cycle -1). We should probably formalize this a bit more
-    assert_msg(cycle < lastLimit+10*zinfo->phaseLength+10000, "Queued event too far into the future, cycle %ld lastLimit %ld", cycle, lastLimit);
+    assert_msg(cycle < lastLimit+10*zinfo->phaseLength+1000000, "Queued event too far into the future, cycle %ld lastLimit %ld", cycle, lastLimit);
 
     assert_msg(cycle >= domains[ev->domain].curCycle, "Queued event goes back in time, cycle %ld curCycle %ld", cycle, domains[ev->domain].curCycle);
     ev->privCycle = cycle;
