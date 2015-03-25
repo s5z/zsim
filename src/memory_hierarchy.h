@@ -108,8 +108,9 @@ struct MemReq {
 struct InvReq {
     Address lineAddr;
     InvType type;
-    bool* reqWriteback;  // should start being false, is pulled up to true
-    uint64_t reqCycle;
+    // NOTE: writeback should start false, children pull it up to true
+    bool* writeback;
+    uint64_t cycle;
     uint32_t srcId;
 };
 
@@ -132,7 +133,7 @@ class BaseCache : public MemObject {
     public:
         virtual void setParents(uint32_t _childId, const g_vector<MemObject*>& parents, Network* network) = 0;
         virtual void setChildren(const g_vector<BaseCache*>& children, Network* network) = 0;
-        virtual uint64_t invalidate(InvReq invReq) = 0;
+        virtual uint64_t invalidate(const InvReq& req) = 0;
 };
 
 #endif  // MEMORY_HIERARCHY_H_

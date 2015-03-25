@@ -66,7 +66,7 @@ class Cache : public BaseCache {
         virtual uint64_t access(MemReq& req);
 
         //NOTE: reqWriteback is pulled up to true, but not pulled down to false.
-        virtual uint64_t invalidate(InvReq invReq);
+        virtual uint64_t invalidate(const InvReq& req);
 
     protected:
         void initCacheStats(AggregateStat* cacheStat);

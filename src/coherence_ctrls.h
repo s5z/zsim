@@ -54,7 +54,7 @@ class CC : public GlobAlloc {
 
         //Inv methods
         virtual void startInv() = 0;
-        virtual uint64_t processInv(InvReq invReq, int32_t lineId, uint64_t startCycle) = 0;
+        virtual uint64_t processInv(InvReq req, int32_t lineId, uint64_t startCycle) = 0;
 
         //Repl policy interface
         virtual uint32_t numSharers(uint32_t lineId) = 0;
@@ -394,9 +394,9 @@ class MESICC : public CC {
             bcc->lock(); //note we don't grab tcc; tcc serializes multiple up accesses, down accesses don't see it
         }
 
-        uint64_t processInv(InvReq invReq, int32_t lineId, uint64_t startCycle) {
-            uint64_t respCycle = tcc->processInval(invReq.lineAddr, lineId, invReq.type, invReq.reqWriteback, startCycle, invReq.srcId); //send invalidates or downgrades to children
-            bcc->processInval(invReq.lineAddr, lineId, invReq.type, invReq.reqWriteback); //adjust our own state
+        uint64_t processInv(InvReq req, int32_t lineId, uint64_t startCycle) {
+            uint64_t respCycle = tcc->processInval(req.lineAddr, lineId, req.type, req.writeback, startCycle, req.srcId); //send invalidates or downgrades to children
+            bcc->processInval(req.lineAddr, lineId, req.type, req.writeback); //adjust our own state
 
             bcc->unlock();
             return respCycle;
@@ -484,8 +484,8 @@ class MESITerminalCC : public CC {
             bcc->lock();
         }
 
-        uint64_t processInv(InvReq invReq, int32_t lineId, uint64_t startCycle) {
-            bcc->processInval(invReq.lineAddr, lineId, invReq.type, invReq.reqWriteback); //adjust our own state
+        uint64_t processInv(InvReq req, int32_t lineId, uint64_t startCycle) {
+            bcc->processInval(req.lineAddr, lineId, req.type, req.writeback); //adjust our own state
             bcc->unlock();
             return startCycle; //no extra delay in terminal caches
         }

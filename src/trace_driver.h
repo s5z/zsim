@@ -96,8 +96,8 @@ class TraceDriverProxyCache : public BaseCache {
         void setDriver(TraceDriver* driver) {drv = driver;}
 
         uint64_t access(MemReq& req) {panic("Should never be called");}
-        uint64_t invalidate(InvReq req) {
-            return drv->invalidate(id, req.lineAddr, req.type, req.reqWriteback, req.reqCycle, req.srcId);
+        uint64_t invalidate(const InvReq& req) {
+            return drv->invalidate(id, req.lineAddr, req.type, req.writeback, req.cycle, req.srcId);
         }
 };
 
