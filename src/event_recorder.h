@@ -78,10 +78,6 @@ class EventRecorder : public GlobAlloc {
             return slabAlloc.alloc(sz);
         }
 
-        void advance(uint64_t prodCycle, uint64_t usedCycle) {
-            slabAlloc.advance(prodCycle, usedCycle);
-        }
-
         //Event recording interface
 
         void pushRecord(const TimingRecord& rec) {

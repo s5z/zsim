@@ -117,9 +117,6 @@ class SlabAlloc {
 
         template <typename T> T* alloc() { return (T*)alloc(sizeof(T)); }
 
-        // Every event currently produced is < prodCycle, every event < usedCycle is dead (has already been simulated)
-        void advance(uint64_t prodCycle, uint64_t usedCycle) {}
-
     private:
         void allocSlab() {
             scoped_mutex sm(freeLock);
