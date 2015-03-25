@@ -502,6 +502,7 @@ uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {
         info("Thread %d entering fast-forward", tid);
         clearCid(tid);
         zinfo->sched->leave(procIdx, tid, newCid);
+        newCid = INVALID_CID;
         SimThreadFini(tid);
         fPtrs[tid] = GetFFPtrs();
     } else if (zinfo->terminationConditionMet) {
@@ -907,11 +908,11 @@ VOID SyscallEnter(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
         uint32_t cid = getCid(tid);
         // set an invalid cid, ours is property of the scheduler now!
         clearCid(tid);
-        
+
         zinfo->sched->syscallLeave(procIdx, tid, cid, PIN_GetContextReg(ctxt, REG_INST_PTR),
                 PIN_GetSyscallNumber(ctxt, std), PIN_GetSyscallArgument(ctxt, std, 0),
                 PIN_GetSyscallArgument(ctxt, std, 1));
-        //zinfo->sched->leave(procIdx, tid, cid); 
+        //zinfo->sched->leave(procIdx, tid, cid);
         fPtrs[tid] = joinPtrs;  // will join at the next instr point
         //info("SyscallEnter %d", tid);
     }
@@ -1163,7 +1164,7 @@ VOID HandleMagicOp(THREADID tid, ADDRINT op) {
                     //we stay in the barrier forever. And deadlock. And the deadlock code does nothing, since we're in FF
                     //So, force immediate entry if we're sync-ffwding
                     if (procTreeNode->getSyncedFastForward()) {
-                        info("Thread %d entering fast-forward", tid);
+                        info("Thread %d entering fast-forward (immediate)", tid);
                         uint32_t cid = getCid(tid);
                         assert(cid != INVALID_CID);
                         clearCid(tid);
