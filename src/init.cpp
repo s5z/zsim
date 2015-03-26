@@ -65,6 +65,7 @@
 #include "simple_core.h"
 #include "stats.h"
 #include "stats_filter.h"
+#include "str.h"
 #include "timing_cache.h"
 #include "timing_core.h"
 #include "timing_event.h"
@@ -420,13 +421,23 @@ CacheGroup* BuildCacheGroup(Config& config, const string& name, bool isTerminal)
 
 static void InitSystem(Config& config) {
     unordered_map<string, string> parentMap; //child -> parent
-    unordered_map<string, vector<string>> childMap; //parent -> children (a parent may have multiple children, they are ordered by appearance in the file)
+    unordered_map<string, vector<vector<string>>> childMap; //parent -> children (a parent may have multiple children)
 
-    //If a network file is specificied, build a Network
+    auto parseChildren = [](string children) {
+        // 1st dim: concatenated caches; 2nd dim: interleaved caches
+        // Example: "l2-beefy l1i-wimpy|l1d-wimpy" produces [["l2-beefy"], ["l1i-wimpy", "l1d-wimpy"]]
+        // If there are 2 of each cache, the final vector will be l2-beefy-0 l2-beefy-1 l1i-wimpy-0 l1d-wimpy-0 l1i-wimpy-1 l1d-wimpy-1
+        vector<string> concatGroups = ParseList<string>(children);
+        vector<vector<string>> cVec;
+        for (string cg : concatGroups) cVec.push_back(ParseList<string>(cg, "|"));
+        return cVec;
+    };
+
+    // If a network file is specified, build a Network
     string networkFile = config.get<const char*>("sys.networkFile", "");
     Network* network = (networkFile != "")? new Network(networkFile.c_str()) : nullptr;
 
-    //Build the caches
+    // Build the caches
     vector<const char*> cacheGroupNames;
     config.subgroups("sys.caches", cacheGroupNames);
     string prefix = "sys.caches.";
@@ -434,37 +445,45 @@ static void InitSystem(Config& config) {
     for (const char* grp : cacheGroupNames) {
         string group(grp);
         if (group == "mem") panic("'mem' is an invalid cache group name");
-        if (parentMap.count(group)) panic("Duplicate cache group %s", (prefix + group).c_str());
-        string parent = config.get<const char*>(prefix + group + ".parent");
-        parentMap[group] = parent;
-        if (!childMap.count(parent)) childMap[parent] = vector<string>();
-        childMap[parent].push_back(group);
+        if (childMap.count(group)) panic("Duplicate cache group %s", (prefix + group).c_str());
+
+        string children = config.get<const char*>(prefix + group + ".children", "");
+        childMap[group] = parseChildren(children);
+        for (auto v : childMap[group]) for (auto child : v) {
+            if (parentMap.count(child)) {
+                panic("Cache group %s can have only one parent (%s and %s found)", child.c_str(), parentMap[child].c_str(), grp);
+            }
+            parentMap[child] = group;
+        }
     }
 
-    //Check that all parents are valid: Either another cache, or "mem"
-    for (const char* grp : cacheGroupNames) {
-        string group(grp);
-        string parent = parentMap[group];
-        if (parent != "mem" && !parentMap.count(parent)) panic("%s has invalid parent %s", (prefix + group).c_str(), parent.c_str());
+    // Check that children are valid (another cache)
+    for (auto& it : parentMap) {
+        bool found = false;
+        for (auto& grp : cacheGroupNames) found |= it.first == grp;
+        if (!found) panic("%s has invalid child %s", it.second.c_str(), it.first.c_str());
     }
 
-    //Get the (single) LLC
-    if (!childMap.count("mem")) panic("One cache must have mem as parent, none found");
-    if (childMap["mem"].size() != 1) panic("One cache must have mem as parent, multiple found");
-    string llc = childMap["mem"][0];
+    // Get the (single) LLC
+    vector<string> parentlessCacheGroups;
+    for (auto& it : childMap) if (!parentMap.count(it.first)) parentlessCacheGroups.push_back(it.first);
+    if (parentlessCacheGroups.size() != 1) panic("Only one last-level cache allowed, found: %s", Str(parentlessCacheGroups).c_str());
+    string llc = parentlessCacheGroups[0];
 
-    //Build each of the groups, starting with the LLC
+    auto isTerminal = [&](string group) -> bool {
+        return childMap[group].size() == 0;
+    };
+
+    // Build each of the groups, starting with the LLC
     unordered_map<string, CacheGroup*> cMap;
-    list<string> fringe; //FIFO
+    list<string> fringe;  // FIFO
     fringe.push_back(llc);
     while (!fringe.empty()) {
         string group = fringe.front();
         fringe.pop_front();
-
-        bool isTerminal = (childMap.count(group) == 0); //if no children, connected to cores
         if (cMap.count(group)) panic("The cache 'tree' has a loop at %s", group.c_str());
-        cMap[group] = BuildCacheGroup(config, group, isTerminal);
-        if (!isTerminal) for (string child : childMap[group]) fringe.push_back(child);
+        cMap[group] = BuildCacheGroup(config, group, isTerminal(group));
+        for (auto& childVec : childMap[group]) fringe.insert(fringe.end(), childVec.begin(), childVec.end());
     }
 
     //Check single LLC
@@ -500,6 +519,7 @@ static void InitSystem(Config& config) {
     }
 
     //Connect everything
+    bool printHierarchy = config.get<bool>("sim.printHierarchy", false);
 
     // mem to llc is a bit special, only one llc
     uint32_t childId = 0;
@@ -509,15 +529,33 @@ static void InitSystem(Config& config) {
 
     // Rest of caches
     for (const char* grp : cacheGroupNames) {
-        if (childMap.count(grp) == 0) continue; //skip terminal caches
+        if (isTerminal(grp)) continue; //skip terminal caches
 
         CacheGroup& parentCaches = *cMap[grp];
         uint32_t parents = parentCaches.size();
         assert(parents);
 
-        //Concatenation of all child caches
+        // Linearize concatenated / interleaved caches from childMap cacheGroups
         CacheGroup childCaches;
-        for (string child : childMap[grp]) childCaches.insert(childCaches.end(), cMap[child]->begin(), cMap[child]->end());
+
+        for (auto childVec : childMap[grp]) {
+            if (!childVec.size()) continue;
+            size_t vecSize = cMap[childVec[0]]->size();
+            for (string child : childVec) {
+                if (cMap[child]->size() != vecSize) {
+                    panic("In interleaved group %s, %s has a different number of caches", Str(childVec).c_str(), child.c_str());
+                }
+            }
+
+            CacheGroup interleavedGroup;
+            for (uint32_t i = 0; i < vecSize; i++) {
+                for (uint32_t j = 0; j < childVec.size(); j++) {
+                    interleavedGroup.push_back(cMap[childVec[j]]->at(i));
+                }
+            }
+
+            childCaches.insert(childCaches.end(), interleavedGroup.begin(), interleavedGroup.end());
+        }
 
         uint32_t children = childCaches.size();
         assert(children);
@@ -525,18 +563,7 @@ static void InitSystem(Config& config) {
         uint32_t childrenPerParent = children/parents;
         if (children % parents != 0) {
             panic("%s has %d caches and %d children, they are non-divisible. "
-                    "Use multiple groups for non-homogeneous children per parent!", grp, parents, children);
-        }
-
-        //HACK FIXME: This solves the L1I+D-L2 connection bug, but it's not very clear.
-        //A long-term solution is to specify whether the children should be interleaved or concatenated.
-        bool terminalChildren = true;
-        for (string child : childMap[grp]) terminalChildren &= (childMap.count(child) == 0 || config.get<bool>("sys.caches." + child + ".isPrefetcher", false));
-        if (terminalChildren) {
-            info("%s's children are all terminal OR PREFETCHERS, interleaving them", grp);
-            CacheGroup tmp(childCaches);
-            uint32_t stride = children/childrenPerParent;
-            for (uint32_t i = 0; i < children; i++) childCaches[i] = tmp[(i % childrenPerParent)*stride + i/childrenPerParent];
+                  "Use multiple groups for non-homogeneous children per parent!", grp, parents, children);
         }
 
         for (uint32_t p = 0; p < parents; p++) {
@@ -552,6 +579,19 @@ static void InitSystem(Config& config) {
                 }
             }
 
+            if (printHierarchy) {
+                vector<string> cacheNames;
+                std::transform(childrenVec.begin(), childrenVec.end(), std::back_inserter(cacheNames),
+                        [](BaseCache* c) -> string { string s = c->getName(); return s; });
+
+                string parentName = parentCaches[p][0]->getName();
+                if (parentCaches[p].size() > 1) {
+                    parentName += "..";
+                    parentName += parentCaches[p][parentCaches[p].size()-1]->getName();
+                }
+                info("Hierarchy: %s -> %s", Str(cacheNames).c_str(), parentName.c_str());
+            }
+
             for (BaseCache* bank : parentCaches[p]) {
                 bank->setChildren(childrenVec, network);
             }
@@ -560,7 +600,7 @@ static void InitSystem(Config& config) {
 
     //Check that all the terminal caches have a single bank
     for (const char* grp : cacheGroupNames) {
-        if (childMap.count(grp) == 0) {
+        if (isTerminal(grp)) {
             uint32_t banks = (*cMap[grp])[0].size();
             if (banks != 1) panic("Terminal cache group %s needs to have a single bank, has %d", grp, banks);
         }
@@ -568,7 +608,7 @@ static void InitSystem(Config& config) {
 
     //Tracks how many terminal caches have been allocated to cores
     unordered_map<string, uint32_t> assignedCaches;
-    for (const char* grp : cacheGroupNames) if (childMap.count(grp) == 0) assignedCaches[grp] = 0;
+    for (const char* grp : cacheGroupNames) if (isTerminal(grp)) assignedCaches[grp] = 0;
 
     if (!zinfo->traceDriven) {
         //Instantiate the cores
@@ -674,7 +714,7 @@ static void InitSystem(Config& config) {
 
         //Check that all the terminal caches are fully connected
         for (const char* grp : cacheGroupNames) {
-            if (childMap.count(grp) == 0 && assignedCaches[grp] != cMap[grp]->size()) {
+            if (isTerminal(grp) && assignedCaches[grp] != cMap[grp]->size()) {
                 panic("%s: Terminal cache group not fully connected, %ld caches, %d assigned", grp, cMap[grp]->size(), assignedCaches[grp]);
             }
         }
@@ -695,7 +735,7 @@ static void InitSystem(Config& config) {
     } else {  // trace-driven: create trace driver and proxy caches
         vector<TraceDriverProxyCache*> proxies;
         for (const char* grp : cacheGroupNames) {
-            if (childMap.count(grp) == 0) {
+            if (isTerminal(grp)) {
                 for (vector<BaseCache*> cv : *cMap[grp]) {
                     assert(cv.size() == 1);
                     TraceDriverProxyCache* proxy = dynamic_cast<TraceDriverProxyCache*>(cv[0]);

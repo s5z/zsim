@@ -43,7 +43,7 @@ template <typename T> std::string Str(const std::vector<T>& v) {
     std::stringstream ss;
     ss << "[";
     for (auto& x : v) ss << " " << x;
-    ss << "]";
+    ss << " ]";
     return ss.str();
 }
 
