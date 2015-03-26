@@ -83,11 +83,13 @@ class Config {
 
 std::vector<bool> ParseMask(const std::string& maskStr, uint32_t maskSize);
 
-/* Parses a space-separated list of T's (typically ints, see/add specializtions in .cpp)
+/* Parses a delimiter-separated list of T's (typically ints, see/add specializtions in .cpp)
  * 0-elem lists are OK
  * panics on parsing and size-violation errors
  */
-template <typename T> std::vector<T> ParseList(const std::string& listStr);
+template <typename T> std::vector<T> ParseList(const std::string& listStr, const char* delimiters);
+
+template <typename T> std::vector<T> ParseList(const std::string& listStr) { return ParseList<T>(listStr, " "); }
 
 // fills remaining elems till maxSize with fillValue
 template <typename T> std::vector<T> ParseList(const std::string& listStr, uint32_t maxSize, uint32_t fillValue) {

@@ -344,9 +344,9 @@ std::vector<bool> ParseMask(const std::string& maskStr, uint32_t maskSize) {
 
 //List parsing
 template <typename T>
-std::vector<T> ParseList(const std::string& listStr) {
+std::vector<T> ParseList(const std::string& listStr, const char* delimiters) {
     vector<string> nums;
-    Tokenize(listStr, nums, " ");
+    Tokenize(listStr, nums, delimiters);
 
     vector<T> res;
     for (auto n : nums) {
@@ -361,6 +361,6 @@ std::vector<T> ParseList(const std::string& listStr) {
 }
 
 //Instantiations
-template std::vector<uint32_t> ParseList<uint32_t>(const std::string& listStr);
-template std::vector<uint64_t> ParseList<uint64_t>(const std::string& listStr);
-template std::vector<std::string> ParseList(const std::string& listStr);
+template std::vector<uint32_t> ParseList<uint32_t>(const std::string& listStr, const char* delimiters);
+template std::vector<uint64_t> ParseList<uint64_t>(const std::string& listStr, const char* delimiters);
+template std::vector<std::string> ParseList(const std::string& listStr, const char* delimiters);
