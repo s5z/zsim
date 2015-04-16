@@ -125,9 +125,11 @@ uint64_t Cache::access(MemReq& req) {
     return respCycle;
 }
 
-uint64_t Cache::invalidate(const InvReq& req) {
+void Cache::startInvalidate() {
     cc->startInv(); //note we don't grab tcc; tcc serializes multiple up accesses, down accesses don't see it
+}
 
+uint64_t Cache::finishInvalidate(const InvReq& req) {
     int32_t lineId = array->lookup(req.lineAddr, nullptr, false);
     assert_msg(lineId != -1, "[%s] Invalidate on non-existing address 0x%lx type %s lineId %d, reqWriteback %d", name.c_str(), req.lineAddr, InvTypeName(req.type), lineId, *req.writeback);
     uint64_t respCycle = req.cycle + invLat;

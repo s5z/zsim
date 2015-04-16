@@ -149,14 +149,15 @@ class FilterCache : public Cache {
         }
 
         uint64_t invalidate(const InvReq& req) {
+            Cache::startInvalidate();  // grabs cache's downLock
             futex_lock(&filterLock);
             uint32_t idx = req.lineAddr & setMask; //works because of how virtual<->physical is done...
             if ((filterArray[idx].rdAddr | procMask) == req.lineAddr) { //FIXME: If another process calls invalidate(), procMask will not match even though we may be doing a capacity-induced invalidation!
                 filterArray[idx].wrAddr = -1L;
                 filterArray[idx].rdAddr = -1L;
             }
+            uint64_t respCycle = Cache::finishInvalidate(req); // releases cache's downLock
             futex_unlock(&filterLock);
-            uint64_t respCycle = Cache::invalidate(req);
             return respCycle;
         }
 
