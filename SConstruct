@@ -45,6 +45,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
     # NOTE: These flags are for the 28/02/2011 2.9 PIN kit (rev39599). Older versions will not build.
     # NOTE (dsm 10 Jan 2013): Tested with Pin 2.10 thru 2.12 as well
     # NOTE: Original Pin flags included -fno-strict-aliasing, but zsim does not do type punning
+    # NOTE (dsm 16 Apr 2015): Update flags code to support Pin 2.14 while retaining backwards compatibility
     env["CPPFLAGS"] += " -g -std=c++0x -Wall -Wno-unknown-pragmas -fomit-frame-pointer -fno-stack-protector"
     env["CPPFLAGS"] += " -MMD -DBIGARRAY_MULTIPLIER=1 -DUSING_XED -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX"
 
@@ -55,13 +56,21 @@ def buildSim(cppFlags, dir, type, pgo=None):
         pinInclDir = joinpath(pinInclDir, "pin")
         assert os.path.exists(joinpath(pinInclDir, "pin.H"))
 
-    env["CPPPATH"] = [joinpath(PINPATH, "extras/xed2-intel64/include"),
+    # Pin 2.14 changes location of XED
+    xedName = "xed2"  # used below
+    xedPath = joinpath(PINPATH, "extras/" + xedName + "-intel64/include")
+    if not os.path.exists(xedPath):
+        xedName = "xed"
+        xedPath = joinpath(PINPATH, "extras/" + xedName + "-intel64/include")
+        assert os.path.exists(xedPath)
+
+    env["CPPPATH"] = [xedPath,
             pinInclDir, joinpath(pinInclDir, "gen"),
             joinpath(PINPATH, "extras/components/include")]
 
-    # Perform trace logging? 
+    # Perform trace logging?
     ##env["CPPFLAGS"] += " -D_LOG_TRACE_=1"
-    
+
     # Uncomment to get logging messages to stderr
     ##env["CPPFLAGS"] += " -DDEBUG=1"
 
@@ -74,13 +83,13 @@ def buildSim(cppFlags, dir, type, pgo=None):
 
     # PIN-specific libraries
     env["PINLINKFLAGS"] = " -Wl,--hash-style=sysv -Wl,-Bsymbolic -Wl,--version-script=" + joinpath(pinInclDir, "pintool.ver")
-    
+
     # To prime system libs, we include /usr/lib and /usr/lib/x86_64-linux-gnu
     # first in lib path. In particular, this solves the issue that, in some
     # systems, Pin's libelf takes precedence over the system's, but it does not
     # include symbols that we need or it's a different variant (we need
     # libelfg0-dev in Ubuntu systems)
-    env["PINLIBPATH"] = ["/usr/lib", "/usr/lib/x86_64-linux-gnu", joinpath(PINPATH, "extras/xed2-intel64/lib"),
+    env["PINLIBPATH"] = ["/usr/lib", "/usr/lib/x86_64-linux-gnu", joinpath(PINPATH, "extras/" + xedName + "-intel64/lib"),
             joinpath(PINPATH, "intel64/lib"), joinpath(PINPATH, "intel64/lib-ext")]
 
     # Libdwarf is provided in static and shared variants, Ubuntu only provides
@@ -88,7 +97,14 @@ def buildSim(cppFlags, dir, type, pgo=None):
     # there are some other old libraries provided there (e.g., libelf) and I
     # want to use the system libs as much as possible. So link directly to the
     # static version of libdwarf.
-    env["PINLIBS"] = ["pin", "xed", File(joinpath(PINPATH, "intel64/lib-ext/libdwarf.a")), "elf", "dl", "rt"]
+
+    # Pin 2.14 uses unambiguous libpindwarf
+    pindwarfPath = joinpath(PINPATH, "intel64/lib-ext/libdwarf.a")
+    pindwarfLib = File(pindwarfPath)
+    if not os.path.exists(pindwarfPath):
+        pindwarfLib = "pindwarf"
+
+    env["PINLIBS"] = ["pin", "xed", pindwarfLib, "elf", "dl", "rt"]
 
     # Non-pintool libraries
     env["LIBPATH"] = []
@@ -106,7 +122,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["LINKFLAGS"] += " -Wl,-R" + joinpath(LIBCONFIGPATH, "lib")
         env["LIBPATH"] += [joinpath(LIBCONFIGPATH, "lib")]
         env["CPPPATH"] += [joinpath(LIBCONFIGPATH, "include")]
-    
+
 
     if "POLARSSLPATH" in os.environ:
         POLARSSLPATH = os.environ["POLARSSLPATH"]
@@ -166,7 +182,7 @@ if GetOption('optBuild') or len(buildTypes) == 0: buildTypes.append("opt")
 march = "core2" # ensure compatibility across condor nodes
 #march = "native" # for profiling runs
 
-buildFlags = {"debug": "-g -O0", 
+buildFlags = {"debug": "-g -O0",
               "opt": "-march=%s -g -O3 -funroll-loops" % march, # unroll loops tends to help in zsim, but in general it can cause slowdown
               "release": "-march=%s -O3 -DNASSERT -funroll-loops -fweb" % march} # fweb saves ~4% exec time, but makes debugging a world of pain, so careful
 
@@ -185,7 +201,7 @@ if GetOption('pgoBuild'):
         testsDir = joinpath(root, "tests")
         trainCfgs = [f for f in os.listdir(testsDir) if f.startswith("pgo")]
         print "Using training configs", trainCfgs
-        
+
         baseDir = joinpath(baseBuildDir, "pgo-" + type)
         genCmd = "scons -j16 --pgoPhase=generate-" + type
         runCmds = []
