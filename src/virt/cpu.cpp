@@ -1,5 +1,5 @@
 /** $glic$
- * Copyright (C) 2012-2014 by Massachusetts Institute of Technology
+ * Copyright (C) 2012-2015 by Massachusetts Institute of Technology
  * Copyright (C) 2010-2013 by The Board of Trustees of Stanford University
  * Copyright (C) 2011 Google Inc.
  *

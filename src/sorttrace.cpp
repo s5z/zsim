@@ -1,5 +1,5 @@
 /** $lic$
- * Copyright (C) 2012-2014 by Massachusetts Institute of Technology
+ * Copyright (C) 2012-2015 by Massachusetts Institute of Technology
  * Copyright (C) 2010-2013 by The Board of Trustees of Stanford University
  *
  * This file is part of zsim.
@@ -22,7 +22,6 @@
  * You should have received a copy of the GNU General Public License along with
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 /* Simple program to sort a trace. It reads in the trace sequntially until it
  * has seen at least one access from every thread, then dumps the sorted trace

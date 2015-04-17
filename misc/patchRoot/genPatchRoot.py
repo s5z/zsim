@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2013-2014 by Massachusetts Institute of Technology
+# Copyright (C) 2013-2015 by Massachusetts Institute of Technology
 #
 # This file is part of zsim.
 #

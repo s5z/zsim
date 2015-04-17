@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2013-2014 by Massachusetts Institute of Technology
+# Copyright (C) 2013-2015 by Massachusetts Institute of Technology
 #
 # This file is part of zsim.
 #
@@ -21,7 +21,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <http://www.gnu.org/licenses/>.
- 
+
 
 import os, sys
 
@@ -56,7 +56,7 @@ for src in srcs:
     print bName
 
     lines = [l for l in txt.split("\n")]
-   
+
     includeBlocks = []
     blockStart = -1
     for i in range(len(lines)):
@@ -81,7 +81,7 @@ for src in srcs:
         for i in range(s, e):
             print "%3d: %s%s | %s" % (i, lines[i], " "*(40 - len(lines[i][:39])), ii[i-s] if i-s < len(ii) else "")
         print ""
-    
+
     prevIdx = 0
     newLines = []
     for (s , e, ii) in newIncludes:

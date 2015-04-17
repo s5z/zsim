@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2013-2014 by Massachusetts Institute of Technology
+# Copyright (C) 2013-2015 by Massachusetts Institute of Technology
 #
 # This file is part of zsim.
 #
@@ -26,7 +26,7 @@ import os, sys, subprocess
 from optparse import OptionParser
 
 parser = OptionParser()
-parser.add_option("--procIdx", type="int", default=0, dest="procIdx", help="Process index to signal") 
+parser.add_option("--procIdx", type="int", default=0, dest="procIdx", help="Process index to signal")
 parser.add_option("--lineMatch", default=" ROI", dest="lineMatch", help="Matching line to stdin will trigger signal")
 parser.add_option("--maxMatches", type="int", default=0, dest="maxMatches", help="Exit after this many matches (0 to disable)")
 parser.add_option("--fftogglePath", default="./build/opt", dest="fftogglePath", help="")
@@ -40,7 +40,7 @@ while matches < opts.maxMatches or opts.maxMatches <= 0:
     except:
         print "stdin done, exiting"
         break
-   
+
     if line.startswith("[H] Global segment shmid = "):
         targetShmid = int(line.split("=")[1].lstrip().rstrip())
         print "Target shmid is", targetShmid
