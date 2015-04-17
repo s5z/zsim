@@ -15,14 +15,22 @@ excludeSrcs = [
 ]
 excludeSrcs += harnessSrcs
 
-# Build libzsim.so
-globSrcNodes = Glob("*.cpp") + Glob("virt/*.cpp")
-libSrcs = [str(x) for x in globSrcNodes if str(x) not in excludeSrcs]
 libEnv = env.Clone()
 libEnv["CPPFLAGS"] += libEnv["PINCPPFLAGS"]
 libEnv["LINKFLAGS"] += libEnv["PINLINKFLAGS"]
 libEnv["LIBPATH"] += libEnv["PINLIBPATH"]
 libEnv["LIBS"] += libEnv["PINLIBS"]
+
+# Build syscall name file
+def getSyscalls(): return os.popen("python ../../misc/list_syscalls.py").read().strip()
+syscallSrc = libEnv.Substfile("virt/syscall_name.cpp", "virt/syscall_name.cpp.in",
+        SUBST_DICT = {"SYSCALL_NAME_LIST" : getSyscalls()})
+
+# Build libzsim.so
+globSrcNodes = Glob("*.cpp") + Glob("virt/*.cpp")
+libSrcs = [str(x) for x in globSrcNodes if str(x) not in excludeSrcs]
+libSrcs += [str(x) for x in syscallSrc]
+libSrcs = list(set(libSrcs)) # ensure syscallSrc is not duplicated
 libEnv.SharedLibrary("zsim.so", libSrcs)
 
 # Build tracing utilities (need hdf5 & dynamic linking)

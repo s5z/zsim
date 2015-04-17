@@ -23,15 +23,9 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Put this before any includes
-#define QUOTED_(x) #x
-#define QUOTED(x) QUOTED_(x)
-
-#define __SYSCALL(a, b) QUOTED(b),
-
 static const char* syscallNames[] = {
-#include <asm/unistd.h>
-"INVALID"
+// Auto-generated at build time
+SYSCALL_NAME_LIST
 };
 
 #include <stdint.h>

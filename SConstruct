@@ -10,7 +10,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
     buildDir = joinpath(dir, type)
     print "Building " + type + " zsim at " + buildDir
 
-    env = Environment(ENV = os.environ)
+    env = Environment(ENV = os.environ, tools = ['default', 'textfile'])
     env["CPPFLAGS"] = cppFlags
 
     allSrcs = [f for dir, subdirs, files in os.walk("src") for f in Glob(dir + "/*")]
