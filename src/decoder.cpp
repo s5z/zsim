@@ -508,7 +508,8 @@ bool Decoder::decodeInstr(INS ins, DynUopVec& uops) {
     Instr instr(ins);
 
     bool isLocked = false;
-    if (INS_LockPrefix(instr.ins)) {
+    // NOTE(dsm): IsAtomicUpdate == xchg or LockPrefix (xchg has in implicit lock prefix)
+    if (INS_IsAtomicUpdate(instr.ins)) {
         isLocked = true;
         emitFence(uops, 0); //serialize the initial load w.r.t. all prior stores
     }
