@@ -151,11 +151,23 @@ void Scheduler::watchdogThreadFunc() {
                         blockingSyscalls[pid].insert(fl->pc);
                     }
 
-                    finishFakeLeave(th);
+                    uint64_t pc = fl->pc;
+                    do {
+                        finishFakeLeave(th);
 
-                    futex_unlock(&schedLock);
-                    leave(pid, tid, cid);
-                    futex_lock(&schedLock);
+                        futex_unlock(&schedLock);
+                        leave(pid, tid, cid);
+                        futex_lock(&schedLock);
+
+                        // also do real leave for other threads blocked at the same pc ...
+                        fl = fakeLeaves.front();
+                        if (fl == nullptr || getPid(th->gid) != pid || fl->pc != pc)
+                            break;
+                        th = fl->th;
+                        tid = getTid(th->gid);
+                        cid = th->cid;
+                        // ... until a lower bound on queue size, in order to make blacklist work
+                    } while (fakeLeaves.size() > 8);
                 } else {
                     info("Skipping, [%d] %s @ 0x%lx | arg0 0x%lx arg1 0x%lx does not match blacklist regex (%s)",
                             pid, GetSyscallName(fl->syscallNumber), fl->pc, fl->arg0, fl->arg1, sbRegexStr.c_str());
