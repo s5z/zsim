@@ -24,6 +24,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "scheduler.h"
 #include <fstream>
 #include <regex>
 #include <sys/stat.h>
@@ -31,7 +32,6 @@
 #include "pin.H"
 #include "process_tree.h"
 #include "profile_stats.h"
-#include "scheduler.h"
 #include "str.h"
 #include "virt/syscall_name.h"
 
@@ -151,11 +151,23 @@ void Scheduler::watchdogThreadFunc() {
                         blockingSyscalls[pid].insert(fl->pc);
                     }
 
-                    finishFakeLeave(th);
+                    uint64_t pc = fl->pc;
+                    do {
+                        finishFakeLeave(th);
 
-                    futex_unlock(&schedLock);
-                    leave(pid, tid, cid);
-                    futex_lock(&schedLock);
+                        futex_unlock(&schedLock);
+                        leave(pid, tid, cid);
+                        futex_lock(&schedLock);
+
+                        // also do real leave for other threads blocked at the same pc ...
+                        fl = fakeLeaves.front();
+                        if (fl == nullptr || getPid(th->gid) != pid || fl->pc != pc)
+                            break;
+                        th = fl->th;
+                        tid = getTid(th->gid);
+                        cid = th->cid;
+                        // ... until a lower bound on queue size, in order to make blacklist work
+                    } while (fakeLeaves.size() > 8);
                 } else {
                     info("Skipping, [%d] %s @ 0x%lx | arg0 0x%lx arg1 0x%lx does not match blacklist regex (%s)",
                             pid, GetSyscallName(fl->syscallNumber), fl->pc, fl->arg0, fl->arg1, sbRegexStr.c_str());
@@ -387,7 +399,7 @@ void Scheduler::finishFakeLeave(ThreadInfo* th) {
 void Scheduler::waitUntilQueued(ThreadInfo* th) {
     uint64_t startNs = getNs();
     uint32_t sleepUs = 1;
-    while(!IsSleepingInFutex(th->linuxTid, th->linuxTid, (uintptr_t)&schedLock)) {
+    while(!IsSleepingInFutex(th->linuxPid, th->linuxTid, (uintptr_t)&schedLock)) {
         TrueSleep(sleepUs++); // linear backoff, start small but avoid overwhelming the OS with short sleeps
         uint64_t curNs = getNs();
         if (curNs - startNs > (2L<<31L) /* ~2s */) {
