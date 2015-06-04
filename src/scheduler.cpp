@@ -24,6 +24,7 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "scheduler.h"
 #include <fstream>
 #include <regex>
 #include <sys/stat.h>
@@ -31,7 +32,6 @@
 #include "pin.H"
 #include "process_tree.h"
 #include "profile_stats.h"
-#include "scheduler.h"
 #include "str.h"
 #include "virt/syscall_name.h"
 
@@ -387,7 +387,7 @@ void Scheduler::finishFakeLeave(ThreadInfo* th) {
 void Scheduler::waitUntilQueued(ThreadInfo* th) {
     uint64_t startNs = getNs();
     uint32_t sleepUs = 1;
-    while(!IsSleepingInFutex(th->linuxTid, th->linuxTid, (uintptr_t)&schedLock)) {
+    while(!IsSleepingInFutex(th->linuxPid, th->linuxTid, (uintptr_t)&schedLock)) {
         TrueSleep(sleepUs++); // linear backoff, start small but avoid overwhelming the OS with short sleeps
         uint64_t curNs = getNs();
         if (curNs - startNs > (2L<<31L) /* ~2s */) {
