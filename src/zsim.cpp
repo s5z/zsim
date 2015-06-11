@@ -511,6 +511,9 @@ uint32_t TakeBarrier(uint32_t tid, uint32_t cid) {
         SimEnd(); //need to call this on a per-process basis...
     }
 
+    // Set fPtrs to those of the new core after possible context switch
+    fPtrs[tid] = cores[tid]->GetFuncPtrs();
+
     return newCid;
 }
 
