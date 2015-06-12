@@ -65,7 +65,7 @@ static void TrueSleep(uint32_t usecs) {
 }
 
 /* Hacky way to figure out if a thread is sleeping on a certain futex.
- * 
+ *
  * Uses /proc/<pid>/task/<tid>/syscall, which is only set when the process is
  * actually sleeping on the syscall, not just in the kernel (see Linux kernel
  * docs). This interface has been available since ~2008.
@@ -81,7 +81,7 @@ bool IsSleepingInFutex(uint32_t linuxPid, uint32_t linuxTid, uintptr_t futexAddr
     std::stringstream ss;
     ss << fs.rdbuf();
     fs.close();
-    
+
     std::vector<std::string> argList = ParseList<std::string>(ss.str());
     bool match = argList.size() >= 2 &&
         strtoul(argList[0].c_str(), nullptr, 0) == SYS_futex &&
@@ -303,7 +303,7 @@ void Scheduler::notifyFutexWakeStart(uint32_t pid, uint32_t tid, uint32_t maxWak
     ThreadInfo* th = gidMap[getGid(pid, tid)];
     DEBUG_FUTEX("[%d/%d] wakeStart max %d", pid, tid, maxWakes);
     assert(th->futexJoin.action == FJA_NONE);
-    
+
     // Programs sometimes call FUTEX_WAIT with maxWakes = UINT_MAX to wake
     // everyone waiting on it; we cap to a reasonably high number to avoid
     // overflows on maxAllowedFutexWakeups
@@ -315,7 +315,7 @@ void Scheduler::notifyFutexWakeStart(uint32_t pid, uint32_t tid, uint32_t maxWak
 }
 
 void Scheduler::notifyFutexWakeEnd(uint32_t pid, uint32_t tid, uint32_t wokenUp) {
-    futex_lock(&schedLock); 
+    futex_lock(&schedLock);
     ThreadInfo* th = gidMap[getGid(pid, tid)];
     DEBUG_FUTEX("[%d/%d] wakeEnd woken %d", pid, tid, wokenUp);
     th->futexJoin.action = FJA_WAKE;
@@ -342,7 +342,7 @@ void Scheduler::futexWakeJoin(ThreadInfo* th) {  // may release schedLock
     assert(maxWakes <= maxAllowedFutexWakeups);
     assert(wokenUp <= maxWakes);
     maxAllowedFutexWakeups -= (maxWakes - wokenUp);
-    
+
     assert(unmatchedFutexWakeups <= maxAllowedFutexWakeups); // should panic...
 
     DEBUG_FUTEX("Futex wake matching %d %d", unmatchedFutexWakeups, maxAllowedFutexWakeups);

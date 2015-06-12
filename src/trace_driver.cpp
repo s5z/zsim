@@ -86,7 +86,7 @@ uint64_t TraceDriver::invalidate(uint32_t childId, Address lineAddr, InvType typ
     } else {
         cStore.erase(it);
         if (srcId == childId) {
-            children[childId].profSelfInv.inc(); 
+            children[childId].profSelfInv.inc();
         } else {
             children[childId].profCrossInv.inc();
         }

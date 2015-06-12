@@ -166,7 +166,7 @@ PostPatchFn PatchOpen(PrePatchArgs args) {
     assert(syscall == SYS_open || syscall == SYS_openat);
 
     if (!patchRoot) return NullPostPatch;  // process does not want patched system...
-        
+
     string fileName;
     int pathReg = (syscall == SYS_open)? 0 : 1;
     ADDRINT pathArg = PIN_GetSyscallArgument(ctxt, std, pathReg);
@@ -196,7 +196,7 @@ PostPatchFn PatchOpen(PrePatchArgs args) {
     string curPath = abspath(fileName, getcwd());
     uint32_t numSymlinks = 0;
 
-    while (numSymlinks < 1024 /*avoid symlink loops*/) { 
+    while (numSymlinks < 1024 /*avoid symlink loops*/) {
         bool match = false;
         if (!fakedPaths) fakedPaths = getFakedPaths(patchRoot);
         for (uint32_t i = 0; i < fakedPaths->size(); i++) {

@@ -23,8 +23,8 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __DETAILED_MEM_H__
-#define __DETAILED_MEM_H__
+#ifndef DETAILED_MEM_H_
+#define DETAILED_MEM_H_
 
 #include "detailed_mem_params.h"
 #include "g_std/g_string.h"
@@ -206,8 +206,8 @@ class MemSchedulerBase : public GlobAlloc {
         // HK: I hope there's a good reason to be using a reference to a pointer here
         // Don't know the code enough at the moment to be able to tell.
         //
-        // Hmm...so upon further investigation it looks like all of these arguments are 
-        // written by the function. I am not a big fan of passing WRITE arguments by 
+        // Hmm...so upon further investigation it looks like all of these arguments are
+        // written by the function. I am not a big fan of passing WRITE arguments by
         // reference. Even more distrubingly, MemSchedQueueElem uses its MemAccessEventBase
         // member in a weird way, with the member var being nullptr signifying something (I don't
         // know what yet). Will look into this further
@@ -345,4 +345,4 @@ class MemAccessEventBase : public TimingEvent {
         Address getAddr() const { return addr; }
 };
 
-#endif
+#endif  // DETAILED_MEM_H_

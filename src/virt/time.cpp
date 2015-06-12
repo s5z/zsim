@@ -141,7 +141,7 @@ PostPatchFn PatchGettimeofday(PrePatchArgs args) {
         VirtGettimeofday(args.tid, arg0);
         return PPA_NOTHING;
     };
-} 
+}
 
 PostPatchFn PatchTime(PrePatchArgs args) {
     if (SkipTimeVirt(args)) return NullPostPatch;
@@ -222,11 +222,11 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
     PIN_SetSyscallArgument(ctxt, std, 1, (ADDRINT)FUTEX_WAIT);
     PIN_SetSyscallArgument(ctxt, std, 2, (ADDRINT)1 /*by convention, see sched code*/);
     PIN_SetSyscallArgument(ctxt, std, 3, (ADDRINT)nullptr);
-    
+
     return [isClock, wakeupPhase, arg0, arg1, arg2, arg3, rem](PostPatchArgs args) {
         CONTEXT* ctxt = args.ctxt;
         SYSCALL_STANDARD std = args.std;
-        
+
         if (isClock) {
             trace(TimeVirt, "[%d] Post-patching SYS_clock_nanosleep", tid);
         } else {

@@ -48,7 +48,7 @@ inline std::vector<bool> cpuenumMask(uint32_t pid) {
     if (zinfo->perProcessCpuEnum) {
         res.resize(cpuenumNumCpus(pid));
         for (uint32_t i = 0; i < res.size(); i++) res[i] = true;
-    } else { 
+    } else {
         const g_vector<bool>& mask = zinfo->procArray[pid]->getMask();
         res.resize(mask.size());
         for (uint32_t i = 0; i < res.size(); i++) res[i] = mask[i];

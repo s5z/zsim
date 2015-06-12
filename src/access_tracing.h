@@ -87,7 +87,7 @@ class AccessTraceWriter : public GlobAlloc {
 
     public:
         AccessTraceWriter(g_string fname, uint32_t numChildren);
-        
+
         inline void write(AccessRecord& acc) {
             buf[cur++] = {acc.lineAddr, acc.reqCycle, acc.latency, (uint16_t) acc.childId, (uint8_t) acc.type};
             if (unlikely(cur == max)) {

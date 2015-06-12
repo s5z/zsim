@@ -47,7 +47,7 @@ static struct sockaddr_in* GetSockAddr(ADDRINT guestAddr, size_t guestSize) {
 PostPatchFn PatchBind(PrePatchArgs args) {
     CONTEXT* ctxt = args.ctxt;
     SYSCALL_STANDARD std = args.std;
-    
+
     ADDRINT sAddrPtr = PIN_GetSyscallArgument(ctxt, std, 1);
     ADDRINT sLen = PIN_GetSyscallArgument(ctxt, std, 2);
     struct sockaddr_in* servAddr = GetSockAddr(sAddrPtr, sLen);

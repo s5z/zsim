@@ -13,7 +13,7 @@ Vagrant::Config.run do |config|
     export DEBIAN_FRONTEND=noninteractive
     apt-get -y update
     # apt-get -y dist-upgrade
-    
+
     # zsim dependencies
     apt-get -y install build-essential g++ git scons
     apt-get -y install libelfg0-dev libhdf5-serial-dev libconfig++-dev

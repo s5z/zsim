@@ -72,7 +72,7 @@ class BranchPredictorPAg {
             uint32_t bhsrMask = (1 << NB) - 1;
             uint32_t histMask = (1 << HB) - 1;
             uint32_t phtMask  = (1 << LB) - 1;
-           
+
             // Predict
             // uint32_t bhsrIdx = ((uint32_t)( branchPc ^ (branchPc >> NB) ^ (branchPc >> 2*NB) )) & bhsrMask;
             uint32_t bhsrIdx = ((uint32_t)( branchPc >> 1)) & bhsrMask;
@@ -81,7 +81,7 @@ class BranchPredictorPAg {
             // Shift-XOR-mask to fit in PHT
             phtIdx ^= (phtIdx & ~phtMask) >> (HB - LB); // take the [HB-1, LB] bits of bshr, XOR with [LB-1, ...] bits
             phtIdx &= phtMask;
-            
+
             // If uncommented, behaves like a global history predictor
             // bhsrIdx = 0;
             // phtIdx = (bhsr[bhsrIdx] ^ ((uint32_t)branchPc)) & phtMask;
@@ -411,7 +411,7 @@ class OOOCore : public Core {
         Address branchNotTakenNpc;
 
         uint64_t decodeCycle;
-        CycleQueue<28> uopQueue;  // models issue queue 
+        CycleQueue<28> uopQueue;  // models issue queue
 
         uint64_t instrs, uops, bbls, approxInstrs, mispredBranches;
 

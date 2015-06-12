@@ -179,7 +179,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
     // Run dispatch/IW
     for (uint32_t i = 0; i < bbl->uops; i++) {
         DynUop* uop = &(bbl->uop[i]);
-        
+
         // Decode stalls
         uint32_t decDiff = uop->decCycle - prevDecCycle;
         decodeCycle = MAX(decodeCycle + decDiff, uopQueue.minAllocCycle());
@@ -303,7 +303,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
 
                     // Wait for all previous store addresses to be resolved (not just ours :))
                     dispatchCycle = MAX(lastStoreAddrCommitCycle+1, dispatchCycle);
-                    
+
                     Address addr = storeAddrs[storeIdx++];
                     uint64_t reqSatisfiedCycle = l1d->store(addr, dispatchCycle) + L1D_LAT;
                     cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
@@ -398,7 +398,7 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
          * (28 uops), IW (36 uops), and 16B instr length predecoder buffer. At
          * ~3.5 bytes/instr, 1.2 uops/instr, this is about 5 64-byte lines.
          */
-         
+
         // info("Mispredicted branch, %ld %ld %ld | %ld %ld", decodeCycle, curCycle, lastCommitCycle,
         //         lastCommitCycle-decodeCycle, lastCommitCycle-curCycle);
         Address wrongPathAddr = branchTaken? branchNotTakenNpc : branchTakenNpc;

@@ -42,7 +42,7 @@ int main(int argc, const char* argv[]) {
 
     gm_init(32<<20 /*32 MB, should be enough*/);
     AccessTraceReader tr(argv[1]);
-    
+
     info("%12s %6s %6s %20s %10s", "Cycle", "Src", "Type", "LineAddr", "Latency");
     while(!tr.empty()) {
         AccessRecord acc = tr.read();

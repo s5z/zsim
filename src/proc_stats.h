@@ -51,7 +51,7 @@ class ProcStats : public GlobAlloc {
         void notifyDeschedule();
 
     private:
-        Stat* replStat(Stat* s, const char* name = NULL, const char* desc = NULL);
+        Stat* replStat(Stat* s, const char* name = nullptr, const char* desc = nullptr);
 
         void update();  // transparent
 };
