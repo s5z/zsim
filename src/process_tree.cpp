@@ -72,7 +72,7 @@ bool ProcessTreeNode::notifyStart() {
 
         //Set FFWD counters -- NOTE we can't call enter FFWD
         if (inFastForward) {
-            if (syncedFastForward) __sync_fetch_and_add(&zinfo->globalSyncedFFProcs, 1);
+            if (getSyncedFastForward()) __sync_fetch_and_add(&zinfo->globalSyncedFFProcs, 1);
             __sync_fetch_and_add(&zinfo->globalFFProcs, 1);
         }
 
@@ -102,7 +102,7 @@ bool ProcessTreeNode::notifyEnd() {
 void ProcessTreeNode::enterFastForward() {
     assert(!inFastForward);
     inFastForward = true;
-    if (syncedFastForward) __sync_fetch_and_add(&zinfo->globalSyncedFFProcs, 1);
+    if (getSyncedFastForward()) __sync_fetch_and_add(&zinfo->globalSyncedFFProcs, 1);
     __sync_fetch_and_add(&zinfo->globalFFProcs, 1);
     __sync_synchronize();
 }
@@ -110,7 +110,7 @@ void ProcessTreeNode::enterFastForward() {
 void ProcessTreeNode::exitFastForward() {
     assert(inFastForward);
     inFastForward = false;
-    if (syncedFastForward) __sync_fetch_and_sub(&zinfo->globalSyncedFFProcs, 1);
+    if (getSyncedFastForward()) __sync_fetch_and_sub(&zinfo->globalSyncedFFProcs, 1);
     __sync_fetch_and_sub(&zinfo->globalFFProcs, 1);
     __sync_synchronize();
 }
@@ -172,7 +172,7 @@ static void PopulateLevel(Config& config, const std::string& prefix, std::vector
 
 
         bool startFastForwarded = config.get<bool>(p_ss.str() +  ".startFastForwarded", false);
-        bool syncedFastForward = config.get<bool>(p_ss.str() +  ".syncedFastForward", true);
+        g_string syncedFastForward = config.get<const char*>(p_ss.str() +  ".syncedFastForward", "Multiprocess");
         bool startPaused = config.get<bool>(p_ss.str() +  ".startPaused", false);
         uint32_t clockDomain = config.get<uint32_t>(p_ss.str() +  ".clockDomain", 0);
         uint32_t portDomain = config.get<uint32_t>(p_ss.str() +  ".portDomain", 0);
@@ -196,6 +196,8 @@ static void PopulateLevel(Config& config, const std::string& prefix, std::vector
 
         if (clockDomain >= MAX_CLOCK_DOMAINS) panic("Invalid clock domain %d", clockDomain);
         if (portDomain >= MAX_PORT_DOMAINS) panic("Invalid port domain %d", portDomain);
+        if (syncedFastForward != "Multiprocess" && syncedFastForward != "Always" && syncedFastForward != "Never")
+            panic("Invalid synced fast forward option %s. Should be Multiprocess, Always, or Never", syncedFastForward.c_str());
 
         ProcessTreeNode* ptn = new ProcessTreeNode(procIdx, groupIdx, startFastForwarded, startPaused, syncedFastForward, clockDomain, portDomain, dumpHeartbeats, dumpsResetHeartbeats, restarts, mask, ffiPoints, syscallBlacklistRegex, gpr);
         //info("Created ProcessTreeNode, procIdx %d", procIdx);
@@ -219,7 +221,7 @@ static void PopulateLevel(Config& config, const std::string& prefix, std::vector
 }
 
 void CreateProcessTree(Config& config) {
-    ProcessTreeNode* rootNode = new ProcessTreeNode(-1, -1, false, false, false, 0, 0, 0, false, 0, g_vector<bool> {},  g_vector<uint64_t> {}, g_string {}, nullptr);
+    ProcessTreeNode* rootNode = new ProcessTreeNode(-1, -1, false, false, "Never", 0, 0, 0, false, 0, g_vector<bool> {},  g_vector<uint64_t> {}, g_string {}, nullptr);
     uint32_t procIdx = 0;
     uint32_t groupIdx = 0;
     std::vector<ProcessTreeNode*> globProcVector;
