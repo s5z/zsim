@@ -69,9 +69,9 @@ extern FILE* logFdErr;
 /* Set per-process header for log/info/warn/panic messages
  * Calling this is not needed (the default header is ""),
  * but it helps in multi-process runs
- * If file is NULL or InitLog is not called, logs to stdout/stderr
+ * If file is nullptr or InitLog is not called, logs to stdout/stderr
  */
-void InitLog(const char* header, const char* file = NULL);
+void InitLog(const char* header, const char* file = nullptr);
 
 /* Helper class to print expression with values
  * Inpired by Phil Nash's CATCH, https://github.com/philsquared/Catch

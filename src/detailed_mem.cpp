@@ -845,7 +845,7 @@ uint64_t MemChannelBase::GetBackGroundEnergy(uint64_t memCycle, uint64_t lastMem
 MemSchedulerDefault::MemSchedulerDefault(uint32_t id, MemParam* mParam, MemChannelBase* mChnl)
     : MemSchedulerBase(id, mParam, mChnl)
 {
-    prioritizedAccessType = READ; 
+    prioritizedAccessType = READ;
     wrQueueSize = mParam->schedulerQueueCount;
     wrQueueHighWatermark = mParam->schedulerQueueCount * 2 / 3;
     wrQueueLowWatermark = mParam->schedulerQueueCount * 1 / 3;
@@ -1049,7 +1049,7 @@ void MemControllerBase::enqueue(MemAccessEventBase* ev, uint64_t cycle) {
     if (mParam->schedulerQueueCount == 0) {
         MemAccessType type = ev->getType();
         uint64_t startCycle = cycle - preDelay[type] + mParam->controllerLatency;
-        // FIXME: Shouldn't we use the next memCycle following startCycle as the 
+        // FIXME: Shouldn't we use the next memCycle following startCycle as the
         // starting cycle of the dram request?
         uint64_t latency = LatencySimulate(ev->getAddr(), startCycle, type);
         ev->done(cycle + latency - minLatency[type] + mParam->controllerLatency);

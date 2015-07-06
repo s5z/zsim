@@ -111,7 +111,7 @@ AccessTraceWriter::AccessTraceWriter(g_string _fname, uint32_t numChildren) : fn
 
     hid_t fid = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (fid == H5I_INVALID_HID) panic("Could not create HDF5 file %s", fname.c_str());
-    
+
     // HACK: We want to use the SHUF filter... create the raw dataset instead of the packet table
     // hid_t table = H5PTcreate_fl(fid, "accs", recType, PT_CHUNKSIZE, 9);
     // if (table == H5I_INVALID_HID) panic("Could not create HDF5 packet table");

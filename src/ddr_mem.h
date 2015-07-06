@@ -135,7 +135,7 @@ class SchedEvent;
 // Single-channel controller. For multiple channels, use multiple controllers.
 class DDRMemory : public MemObject {
     private:
-        
+
         struct AddrLoc {
             uint64_t row;
             uint32_t bank;
@@ -167,7 +167,7 @@ class DDRMemory : public MemObject {
             uint64_t minPreCycle;   // if !open, time of last PRE; if open, min cycle PRE can be issued
             uint64_t lastActCycle;  // cycle of last ACT command
             uint64_t lastCmdCycle;  // RD/WR command, used for refreshes only
-            
+
             uint64_t curRowHits;    // row hits on the currently opened row
 
             InList<Request> rdReqs;
@@ -224,7 +224,7 @@ class DDRMemory : public MemObject {
 
         g_vector< g_vector<Bank> > banks; // indexed by rank, bank
         g_vector<ActWindow> rankActWindows;
-        
+
         // Event scheduling
         SchedEvent* nextSchedEvent;
         uint64_t nextSchedCycle;
@@ -279,12 +279,12 @@ class DDRMemory : public MemObject {
 
     private:
         AddrLoc mapLineAddr(Address lineAddr);
-        
+
         void queue(Request* req, uint64_t memCycle);
-        
+
         inline uint64_t trySchedule(uint64_t curCycle, uint64_t sysCycle);
         uint64_t findMinCmdCycle(const Request& r) const;
-        
+
         void initTech(const char* tech);
 };
 

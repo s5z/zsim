@@ -169,5 +169,5 @@ uint64_t SHA1HashFamily::hash(uint32_t id, uint64_t val) {
     panic("???");
     return 0;
 }
- 
+
 #endif  // _WITH_POLARSSL_

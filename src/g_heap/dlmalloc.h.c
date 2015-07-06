@@ -46,11 +46,11 @@
  * mparams data structure. In zsim, these are *per process*. This is totally
  * fine, as the global lock is used to 1) Protect mparams initialization, and
  * 2) Synchronize calls to the system allocator (mmap, etc). Since we initialize
- * mparams per process and do not ever get memory from the system, this is fine. 
+ * mparams per process and do not ever get memory from the system, this is fine.
  *
  * The only code change is to set the magic number in init_mparams to be fixed
  * instead of randomly derived. The reason is that there is one mparams per
- * process, so it is initialized multiple times. 
+ * process, so it is initialized multiple times.
  */
 
 /*
@@ -1419,7 +1419,7 @@ LONG __cdecl _InterlockedExchange(LONG volatile *Target, LONG Value);
 
 /* Declarations for bit scanning on win32 */
 #if defined(_MSC_VER) && _MSC_VER>=1300
-#ifndef BitScanForward	/* Try to avoid pulling in WinNT.h */
+#ifndef BitScanForward    /* Try to avoid pulling in WinNT.h */
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */

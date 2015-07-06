@@ -57,7 +57,7 @@ class StlGlobAlloc {
         pointer address(reference x) const { return &x; }
         const_pointer address(const_reference x) const { return &x; }
         StlGlobAlloc<T>& operator=(const StlGlobAlloc&) { return *this; }
-        
+
 
         // Construct/destroy
         // gcc keeps changing these interfaces. See /usr/include/c++/4.8/ext/new_allocator.h

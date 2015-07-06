@@ -1,4 +1,4 @@
-processor	: $CPU 
+processor	: $CPU
 vendor_id	: GenuineIntel
 cpu family	: 6
 model		: 15

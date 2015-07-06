@@ -296,7 +296,7 @@ DDRMemory::AddrLoc DDRMemory::mapLineAddr(Address lineAddr) {
 void DDRMemory::enqueue(DDRMemoryAccEvent* ev, uint64_t sysCycle) {
     uint64_t memCycle = sysToMemCycle(sysCycle);
     DEBUG("%ld: enqueue() addr 0x%lx wr %d", memCycle, ev->getAddr(), ev->isWrite());
-    
+
     // Create request
     Request ovfReq;
     bool overflow = rdQueue.full() || wrQueue.full();
@@ -320,7 +320,7 @@ void DDRMemory::enqueue(DDRMemoryAccEvent* ev, uint64_t sysCycle) {
 
         // If needed, schedule an event to handle this new request
         if (!req->prev /* first in bank */) {
-            uint64_t minSchedCycle = std::max(memCycle, minRespCycle - tCL - tBL);  
+            uint64_t minSchedCycle = std::max(memCycle, minRespCycle - tCL - tBL);
             if (nextSchedCycle > minSchedCycle) minSchedCycle = std::max(minSchedCycle, findMinCmdCycle(*req));
             if (nextSchedCycle > minSchedCycle) {
                 if (nextSchedEvent) nextSchedEvent->annul();
@@ -338,11 +338,11 @@ void DDRMemory::enqueue(DDRMemoryAccEvent* ev, uint64_t sysCycle) {
                 nextSchedEvent->enqueue(enqSysCycle);
                 nextSchedCycle = minSchedCycle;
             }
-        } 
+        }
     }
 }
 
-void DDRMemory::queue(Request* req, uint64_t memCycle) {    
+void DDRMemory::queue(Request* req, uint64_t memCycle) {
     // If it's a write, respond to it immediately
     if (req->write) {
         auto ev = req->ev;
@@ -352,7 +352,7 @@ void DDRMemory::queue(Request* req, uint64_t memCycle) {
         uint64_t respCycle = memToSysCycle(memCycle) + minWrLatency;
         ev->done(respCycle - preDelay - postDelayWr);
     }
-    
+
     req->arrivalCycle = memCycle;  // if this comes from the overflow queue, update
 
     // Test: Skip writes
@@ -437,7 +437,7 @@ uint64_t DDRMemory::tick(uint64_t sysCycle) {
         overflowQueue.pop_front();
 
         queue(req, memCycle);
-        
+
         // This request may be schedulable before trySchedule's minSchedCycle
         if (!req->prev /*first in bank queue*/) {
             uint64_t minQueuedSchedCycle = std::max(memCycle, minRespCycle - tCL - tBL);
@@ -567,7 +567,7 @@ uint64_t DDRMemory::trySchedule(uint64_t curCycle, uint64_t sysCycle) {
 
         uint64_t actCycle = std::max(r->arrivalCycle, std::max(preCycle + tRP, bank.lastActCycle + tRRD));
         actCycle = std::max(actCycle, rankActWindows[r->loc.rank].minActCycle() + tFAW);
-        
+
         // Record ACT
         bank.open = true;
         bank.openRow = r->loc.row;
@@ -602,10 +602,10 @@ uint64_t DDRMemory::trySchedule(uint64_t curCycle, uint64_t sysCycle) {
     if (r->ev) {
         auto ev = r->ev;
         assert(!ev->isWrite() && !r->write);  // reads only
-        
+
         uint64_t doneSysCycle = memToSysCycle(minRespCycle) + controllerSysLatency;
         assert(doneSysCycle >= sysCycle);
-        
+
         ev->release();
         ev->done(doneSysCycle - preDelay - postDelayRd);
 
@@ -623,7 +623,7 @@ uint64_t DDRMemory::trySchedule(uint64_t curCycle, uint64_t sysCycle) {
     }
 
     DEBUG("Served 0x%lx lat %ld clocks", r->addr, minRespCycle-curCycle);
-    
+
     // Dequeue this req
     queue.remove(ir);
     (isWriteQueue? bank.wrReqs : bank.rdReqs).pop_front();
@@ -651,7 +651,7 @@ void DDRMemory::refresh(uint64_t sysCycle) {
             bank.open = false;
         }
     }
-    
+
     DEBUG("Refresh %ld start %ld done %ld", memCycle, minRefreshCycle, refreshDoneCycle);
 }
 
@@ -728,7 +728,7 @@ void DDRMemory::initTech(const char* techName) {
         // even 32 bytes is pushing it, 32B probably calls for coalescing buffers
         panic("Unsupported line size %d", lineSize);
     }
-    
+
     memFreqKHz = (uint64_t)(1e9/tCK/1e3);
 }
 
