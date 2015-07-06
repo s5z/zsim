@@ -34,6 +34,12 @@
 
 class Config;
 
+enum SyncedFastForwardMode {
+    SFF_ALWAYS,
+    SFF_MULTIPROCESS,
+    SFF_NEVER
+};
+
 class ProcessTreeNode : public GlobAlloc {
     private:
         g_vector<ProcessTreeNode*> children;
@@ -46,7 +52,7 @@ class ProcessTreeNode : public GlobAlloc {
         volatile bool inFastForward;
         volatile bool inPause;
         uint32_t restartsLeft;
-        const g_string syncedFastForward; //if true, make sim wait when fast-forwarding
+        const SyncedFastForwardMode syncedFastForward;
         const uint32_t clockDomain;
         const uint32_t portDomain;
         const uint64_t dumpHeartbeats;
@@ -56,7 +62,7 @@ class ProcessTreeNode : public GlobAlloc {
         const g_string syscallBlacklistRegex;
 
     public:
-        ProcessTreeNode(uint32_t _procIdx, uint32_t _groupIdx, bool _inFastForward, bool _inPause, const g_string& _syncedFastForward,
+        ProcessTreeNode(uint32_t _procIdx, uint32_t _groupIdx, bool _inFastForward, bool _inPause, const SyncedFastForwardMode& _syncedFastForward,
                         uint32_t _clockDomain, uint32_t _portDomain, uint64_t _dumpHeartbeats, bool _dumpsResetHeartbeats, uint32_t _restarts,
                         const g_vector<bool>& _mask, const g_vector<uint64_t>& _ffiPoints, const g_string& _syscallBlacklistRegex, const char*_patchRoot)
             : patchRoot(_patchRoot), procIdx(_procIdx), groupIdx(_groupIdx), curChildren(0), heartbeats(0), started(false), inFastForward(_inFastForward),
@@ -105,7 +111,7 @@ class ProcessTreeNode : public GlobAlloc {
         inline bool isInFastForward() const { return inFastForward; }
         inline bool isInPause() const { return inPause; }
         inline bool getSyncedFastForward() const {
-            return syncedFastForward == "Always" || (syncedFastForward == "Multiprocess" && zinfo->numProcs > 1);
+            return syncedFastForward == SFF_ALWAYS || (syncedFastForward == SFF_MULTIPROCESS && zinfo->numProcs > 1);
         }
 
         //In cpp file, they need to access zinfo
