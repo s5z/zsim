@@ -58,6 +58,7 @@ struct InstrFuncPtrs {  // NOLINT(whitespace)
 #define FPTR_ANALYSIS (0L)
 #define FPTR_JOIN (1L)
 #define FPTR_NOP (2L)
+#define FPTR_RETRY (3L)
 
 //Generic core class
 

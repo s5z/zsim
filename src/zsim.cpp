@@ -365,6 +365,7 @@ VOID FFIEntryBasicBlock(THREADID tid, ADDRINT bblAddr, BblInfo* bblInfo) {
 // Non-analysis pointer vars
 static const InstrFuncPtrs joinPtrs = {JoinAndLoadSingle, JoinAndStoreSingle, JoinAndBasicBlock, JoinAndRecordBranch, JoinAndPredLoadSingle, JoinAndPredStoreSingle, FPTR_JOIN};
 static const InstrFuncPtrs nopPtrs = {NOPLoadStoreSingle, NOPLoadStoreSingle, NOPBasicBlock, NOPRecordBranch, NOPPredLoadStoreSingle, NOPPredLoadStoreSingle, FPTR_NOP};
+static const InstrFuncPtrs retryPtrs = {NOPLoadStoreSingle, NOPLoadStoreSingle, NOPBasicBlock, NOPRecordBranch, NOPPredLoadStoreSingle, NOPPredLoadStoreSingle, FPTR_RETRY};
 static const InstrFuncPtrs ffPtrs = {NOPLoadStoreSingle, NOPLoadStoreSingle, FFBasicBlock, NOPRecordBranch, NOPPredLoadStoreSingle, NOPPredLoadStoreSingle, FPTR_NOP};
 
 static const InstrFuncPtrs ffiPtrs = {NOPLoadStoreSingle, NOPLoadStoreSingle, FFIBasicBlock, NOPRecordBranch, NOPPredLoadStoreSingle, NOPPredLoadStoreSingle, FPTR_NOP};
@@ -896,11 +897,15 @@ VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID *v) {
 //Need to remove ourselves from running threads in case the syscall is blocking
 VOID SyscallEnter(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
     bool isNopThread = fPtrs[tid].type == FPTR_NOP;
-    VirtSyscallEnter(tid, ctxt, std, procTreeNode->getPatchRoot(), isNopThread);
+    bool isRetryThread = fPtrs[tid].type == FPTR_RETRY;
+
+    if (!isRetryThread) {
+        VirtSyscallEnter(tid, ctxt, std, procTreeNode->getPatchRoot(), isNopThread);
+    }
 
     assert(!inSyscall[tid]); inSyscall[tid] = true;
 
-    if (isNopThread) return;
+    if (isNopThread || isRetryThread) return;
 
     /* NOTE: It is possible that we take 2 syscalls back to back with any
      * intervening instrumentation, so we need to check. In that case, this is
@@ -931,8 +936,8 @@ VOID SyscallExit(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
         } else {
             fPtrs[tid] = cores[tid]->GetFuncPtrs(); //go back to normal pointers, directly
         }
-    } else if (ppa == PPA_USE_NOP_PTRS) {
-        fPtrs[tid] = nopPtrs;
+    } else if (ppa == PPA_USE_RETRY_PTRS) {
+        fPtrs[tid] = retryPtrs;
     } else {
         assert(ppa == PPA_NOTHING);
     }
