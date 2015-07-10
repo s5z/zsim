@@ -90,7 +90,7 @@ static bool PrePatchTimeoutSyscall(uint32_t tid, CONTEXT* ctxt, SYSCALL_STANDARD
 
         waitNsec = timeout->tv_sec*1000000000L + timeout->tv_nsec;
 
-        if (op | FUTEX_CLOCK_REALTIME) {
+        if (op & FUTEX_CLOCK_REALTIME) {
             // NOTE: FUTEX_CLOCK_REALTIME is not a documented interface AFAIK, but looking at the Linux source code + with some verification, this is the xlat
             uint32_t domain = zinfo->procArray[procIdx]->getClockDomain();
             uint64_t simNs = cyclesToNs(zinfo->globPhaseCycles);
