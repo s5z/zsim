@@ -33,7 +33,7 @@
 
 enum PostPatchAction {
     PPA_NOTHING,
-    PPA_USE_NOP_PTRS,
+    PPA_USE_RETRY_PTRS,
     PPA_USE_JOIN_PTRS,
 };
 

@@ -231,7 +231,7 @@ PostPatchFn PatchTimeoutSyscall(PrePatchArgs args) {
         ADDRINT timeoutArgVal = PIN_GetSyscallArgument(args.ctxt, args.std, getTimeoutArg(syscall));
         return [syscall, prevIp, timeoutArgVal, fi](PostPatchArgs args) {
             if (PostPatchTimeoutSyscall(args.tid, args.ctxt, args.std, syscall, prevIp, timeoutArgVal)) {
-                return PPA_USE_NOP_PTRS;  // retry
+                return PPA_USE_RETRY_PTRS;  // retry
             } else {
                 if (syscall == SYS_futex) PostPatchFutex(args.tid, fi, args.ctxt, args.std);
                 return PPA_USE_JOIN_PTRS;  // finish
