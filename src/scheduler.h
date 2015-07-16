@@ -482,7 +482,8 @@ class Scheduler : public GlobAlloc, public Callee {
             return res;
         }
 
-        void notifySleepEnd(uint32_t pid, uint32_t tid) {
+        // Returns the number of remaining phases to sleep
+        uint64_t notifySleepEnd(uint32_t pid, uint32_t tid) {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
             ThreadInfo* th = gidMap[gid];
@@ -496,6 +497,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 th->state = BLOCKED;
             }
             futex_unlock(&schedLock);
+            return th->wakeupPhase - zinfo->numPhases;
         }
 
         void printThreadState(uint32_t pid, uint32_t tid) {
