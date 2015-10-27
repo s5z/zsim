@@ -167,7 +167,7 @@ void sigHandler(int sig) {
             if (childInfo[i].status == PS_RUNNING) {
                 info("Killing process %d", cpid);
                 kill(-cpid, SIGKILL);
-                sleep(0.1);
+                usleep(100000);
                 kill(cpid, SIGKILL);
             }
         }
