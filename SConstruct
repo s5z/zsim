@@ -17,10 +17,10 @@ def buildSim(cppFlags, dir, type, pgo=None):
     versionFile = joinpath(buildDir, "version.h")
     if os.path.exists(".git"):
         env.Command(versionFile, allSrcs + [".git/index", "SConstruct"],
-            'echo -e "#define ZSIM_BUILDDATE \\""`date`\\""\\\\n#define ZSIM_BUILDVERSION \\""`python misc/gitver.py`\\""" >>' + versionFile)
+            'printf "#define ZSIM_BUILDDATE \\"`date`\\"\\n#define ZSIM_BUILDVERSION \\"`python misc/gitver.py`\\"" >>' + versionFile)
     else:
         env.Command(versionFile, allSrcs + ["SConstruct"],
-            'echo -e "#define ZSIM_BUILDDATE \\""`date`\\""\\\\n#define ZSIM_BUILDVERSION \\""no git repo\\""" >>' + versionFile)
+            'printf "#define ZSIM_BUILDDATE \\"`date`\\"\\n#define ZSIM_BUILDVERSION \\"no git repo\\"" >>' + versionFile)
 
     # Parallel builds?
     #env.SetOption('num_jobs', 32)

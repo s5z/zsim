@@ -679,7 +679,7 @@ void DDRMemory::initTech(const char* techName) {
         tWTR = 5;
         tWR = 10;
         tRFC = 74;
-        tREFI = 7800;
+        tREFI = 5200;
     } else if (tech == "DDR3-1066-CL7") {
         // from DDR3_micron_16M_8B_x4_sg187.ini
         // see http://download.micron.com/pdf/datasheets/dram/ddr3/1Gb_DDR3_SDRAM.pdf, cl7 variant, copied from it; tRRD is widely different, others match
@@ -695,7 +695,7 @@ void DDRMemory::initTech(const char* techName) {
         tWTR = 4;
         tWR = 7;
         tRFC = 59;
-        tREFI = 7800;
+        tREFI = 4160;
     } else if (tech == "DDR3-1066-CL8") {
         // from DDR3_micron_16M_8B_x4_sg187.ini
         tCK = 1.875;
@@ -710,7 +710,7 @@ void DDRMemory::initTech(const char* techName) {
         tWTR = 4;
         tWR = 8;
         tRFC = 59;
-        tREFI = 7800;
+        tREFI = 4160;
     } else {
         panic("Unknown technology %s, you'll need to define it", techName);
     }
