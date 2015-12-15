@@ -39,11 +39,12 @@ class HashFamily : public GlobAlloc {
 
 class H3HashFamily : public HashFamily {
     private:
-        uint32_t numFuncs;
+        const uint32_t numFuncs;
         uint32_t resShift;
         uint64_t* hMatrix;
     public:
         H3HashFamily(uint32_t numFunctions, uint32_t outputBits, uint64_t randSeed = 123132127);
+        virtual ~H3HashFamily();
         uint64_t hash(uint32_t id, uint64_t val);
 };
 
