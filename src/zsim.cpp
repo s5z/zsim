@@ -661,14 +661,16 @@ static uintptr_t vsyscallStart;
 static uintptr_t vsyscallEnd;
 static bool vsyscallWarned = false;
 
-void VdsoInsertFunc(IMG vi, const char* fName, VdsoFunc func) {
-    ADDRINT baseAddr = IMG_LowAddress(vi);
-    RTN rtn = RTN_FindByName(vi, fName);
-    if (rtn == RTN_Invalid()) {
+// Helper function from parse_vsdo.cpp
+extern void vdso_init_from_sysinfo_ehdr(uintptr_t base);
+extern void *vdso_sym(const char *version, const char *name);
+
+void VdsoInsertFunc(const char* fName, VdsoFunc func) {
+    ADDRINT vdsoFuncAddr = (ADDRINT) vdso_sym("LINUX_2.6", fName);
+    if (vdsoFuncAddr == 0) {
         warn("Did not find %s in vDSO", fName);
     } else {
-        ADDRINT rtnAddr = RTN_Address(rtn) - baseAddr + vdsoStart;
-        vdsoEntryMap[rtnAddr] = func;
+        vdsoEntryMap[vdsoFuncAddr] = func;
     }
 }
 
@@ -683,33 +685,21 @@ void VdsoInit() {
         return;
     }
 
-    // Write it out
-    std::stringstream file_ss;
-    file_ss << zinfo->outputDir << "/vdso.dso." << procIdx;
-    const char* file = file_ss.str().c_str();
-    FILE* vf = fopen(file, "w");
-    fwrite(reinterpret_cast<void*>(vdso.start), 1, vdsoEnd-vdsoStart, vf);
-    fclose(vf);
+    vdso_init_from_sysinfo_ehdr(vdsoStart);
 
-    // Load it and analyze it
-    IMG vi = IMG_Open(file);
-    if (!IMG_Valid(vi)) panic("Loaded vDSO not valid");
+    VdsoInsertFunc("clock_gettime", VF_CLOCK_GETTIME);
+    VdsoInsertFunc("__vdso_clock_gettime", VF_CLOCK_GETTIME);
 
-    VdsoInsertFunc(vi, "clock_gettime", VF_CLOCK_GETTIME);
-    VdsoInsertFunc(vi, "__vdso_clock_gettime", VF_CLOCK_GETTIME);
+    VdsoInsertFunc("gettimeofday", VF_GETTIMEOFDAY);
+    VdsoInsertFunc("__vdso_gettimeofday", VF_GETTIMEOFDAY);
 
-    VdsoInsertFunc(vi, "gettimeofday", VF_GETTIMEOFDAY);
-    VdsoInsertFunc(vi, "__vdso_gettimeofday", VF_GETTIMEOFDAY);
+    VdsoInsertFunc("time", VF_TIME);
+    VdsoInsertFunc("__vdso_time", VF_TIME);
 
-    VdsoInsertFunc(vi, "time", VF_TIME);
-    VdsoInsertFunc(vi, "__vdso_time", VF_TIME);
-
-    VdsoInsertFunc(vi, "getcpu", VF_GETCPU);
-    VdsoInsertFunc(vi, "__vdso_getcpu", VF_GETCPU);
+    VdsoInsertFunc("getcpu", VF_GETCPU);
+    VdsoInsertFunc("__vdso_getcpu", VF_GETCPU);
 
     info("vDSO info initialized");
-    IMG_Close(vi);
-    remove(file);
 
     Section vsyscall = FindSection("vsyscall");
     vsyscallStart = vsyscall.start;
