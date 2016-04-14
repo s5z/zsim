@@ -37,7 +37,5 @@ Vagrant::Config.run do |config|
     # Configure system flags
     sysctl -w kernel.shmmax=1073741824
     sysctl -w kernel.yama.ptrace_scope=0
-
-    # Run git clone <zsim repo URL> && cd zsim && scons -j16 && you're ready to go
   SH
 end

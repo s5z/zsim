@@ -107,17 +107,24 @@ You can also follow this Vagrantfile to figure out how to setup zsim on an
 Ubuntu system. Note that **zsim will be much slower on a VM** because it relies
 on fast context-switching, so we don't recommend this for purposes other than
 testing and development. Assuming you have vagrant installed (`sudo apt-get
-install vagrant` on Ubuntu or Debian), follow these:
+install vagrant` on Ubuntu or Debian), follow these steps:
 
-1. Copy `misc/Vagrantfile` from the repo into an empty folder.
+Copy the Vagrant file to the zsim root folder, boot up and provision the base VM
+with all dependencies, then ssh into the VM.
+```bash
+cp misc/Vagrantfile .
+vagrant up
+vagrant ssh
+```
 
-2. Run `vagrant up` to set up the base VM and install all dependencies.
-
-3. SSH into the VM with `vagrant ssh`.
-
-4. Inside the VM, you can clone the zsim repo, and build it and use it as usual
-   (steps 1, 5, and 6 above).
-
+Vagrant automatically [syncs](https://www.vagrantup.com/docs/synced-folders/)
+the zsim root folder of your host machine to `/vagrant/` on the guest machine.
+Now that you're in the VM, navigate to that synced folder, and simply build and
+use zsim (steps 5 and 6 above).
+```bash
+cd /vagrant/
+scons -j4
+```
 
 Notes
 -----
