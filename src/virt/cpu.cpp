@@ -75,7 +75,7 @@ PostPatchFn PatchSchedGetaffinity(PrePatchArgs args) {
         cpu_set_t* set = (cpu_set_t*)PIN_GetSyscallArgument(args.ctxt, args.std, 2);
         if (set) { //TODO: use SafeCopy, this can still segfault
             CPU_ZERO_S(size, set);
-            std::vector<bool> cpumask = cpuenumMask(procIdx);
+            std::vector<bool> cpumask = cpuenumMask(procIdx, args.tid);
             for (uint32_t i = 0; i < MIN(cpumask.size(), size*8 /*size is in bytes, supports 1 cpu/bit*/); i++) {
                 if (cpumask[i]) CPU_SET_S(i, (size_t)size, set);
             }
@@ -86,10 +86,19 @@ PostPatchFn PatchSchedGetaffinity(PrePatchArgs args) {
 }
 
 PostPatchFn PatchSchedSetaffinity(PrePatchArgs args) {
+    uint32_t size = PIN_GetSyscallArgument(args.ctxt, args.std, 1);
+    cpu_set_t* set = (cpu_set_t*)PIN_GetSyscallArgument(args.ctxt, args.std, 2);
+    info("[%d] Pre-patching SYS_sched_setaffinity size %d cpuset %p", args.tid, size, set);
+    if (set) {
+        std::vector<bool> cpumask(cpuenumNumCpus(procIdx));
+        for (uint32_t i = 0; i < MIN(cpumask.size(), size*8 /*size is in bytes, supports 1 cpu/bit*/); i++) {
+            cpumask[i] = CPU_ISSET_S(i, (size_t)size, set);
+        }
+        cpuenumUpdateMask(procIdx, args.tid, cpumask);
+    }
     PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT) SYS_getpid);  // squash
     return [](PostPatchArgs args) {
-        PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)-EPERM);  // make it a proper failure
-        return PPA_NOTHING;
+        return PPA_USE_JOIN_PTRS;
     };
 }
 

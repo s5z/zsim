@@ -281,8 +281,9 @@ void Scheduler::syscallLeave(uint32_t pid, uint32_t tid, uint32_t cid, uint64_t 
     assert_msg(pid < blockingSyscalls.size(), "%d >= %ld?", pid, blockingSyscalls.size());
 
     bool blacklisted = blockingSyscalls[pid].find(pc) != blockingSyscalls[pid].end();
-    if (blacklisted || th->markedForSleep) {
-        DEBUG_FL("%s @ 0x%lx calling leave(), reason: %s", GetSyscallName(syscallNumber), pc, blacklisted? "blacklist" : "sleep");
+    if (blacklisted || th->markedForSleep || !th->mask[cid]) {
+        // (mgao): thread mask may be updated by SYS_sched_setaffinity syscall, in which case it must do true leave.
+        DEBUG_FL("%s @ 0x%lx calling leave(), reason: %s", GetSyscallName(syscallNumber), pc, blacklisted? "blacklist" : (th->markedForSleep ? "sleep" : "affinity"));
         futex_unlock(&schedLock);
         leave(pid, tid, cid);
     } else {
