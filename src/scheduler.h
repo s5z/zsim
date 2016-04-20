@@ -585,6 +585,15 @@ class Scheduler : public GlobAlloc, public Callee {
             // Do leave and join outside to clear and set cid in zsim.cpp
         }
 
+        uint32_t getTidFromLinuxTid(uint32_t linuxTid) {
+            for (const auto& kv : gidMap) {
+                if (kv.second->linuxTid == linuxTid) {
+                    return getTid(kv.first);
+                }
+            }
+            return -1;
+        }
+
     private:
         void schedule(ThreadInfo* th, ContextInfo* ctx) {
             assert(th->state == STARTED || th->state == BLOCKED || th->state == QUEUED);
