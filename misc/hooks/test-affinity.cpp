@@ -45,16 +45,20 @@ static void* thread_function(void* th_args) {
 
 
     // Pthread affinity API.
-    CPU_ZERO(&set);
-    CPU_SET(tid + 8, &set);
-    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
+    // Use dynamically sized cpu set.
+    cpu_set_t* pset = CPU_ALLOC(2048);
+    size_t size = CPU_ALLOC_SIZE(2048);
+    CPU_ZERO_S(size, pset);
+    CPU_SET_S(tid + 8, size, pset);
+    pthread_setaffinity_np(pthread_self(), size, pset);
 
-    CPU_ZERO(&set);
-    pthread_getaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
-    for (int i = 0; i < (int)sizeof(cpu_set_t)*8; i++) {
-        if (CPU_ISSET(i, &set)) printf("Thread %d: could run on core %d\n", tid, i);
+    CPU_ZERO_S(size, pset);
+    pthread_getaffinity_np(pthread_self(), size, pset);
+    for (int i = 0; i < (int)size*8; i++) {
+        if (CPU_ISSET_S(i, size, pset)) printf("Thread %d: could run on core %d\n", tid, i);
     }
     printf("Thread %d: actual running on core %u\n", tid, get_cpuid());
+    CPU_FREE(pset);
 
     args->ret = dummy_compute(tid);
 
