@@ -87,7 +87,7 @@ class TraceDriverProxyCache : public BaseCache {
         MemObject* parent;
     public:
         TraceDriverProxyCache(g_string& _name) : drv(nullptr), id(-1), name(_name) {}
-        const char* getName() {return name.c_str();}
+        const char* getName() const {return name.c_str();}
 
         void setParents(uint32_t _childId, const g_vector<MemObject*>& parents, Network* network) {id = _childId; assert(parents.size() == 1); parent = parents[0];}; //FIXME: Support multi-banked caches...
         void setChildren(const g_vector<BaseCache*>& children, Network* network) {panic("Should not be called, this must be terminal");};

@@ -105,7 +105,7 @@ class StreamPrefetcher : public BaseCache {
     public:
         explicit StreamPrefetcher(const g_string& _name) : timestamp(0), name(_name) {}
         void initStats(AggregateStat* parentStat);
-        const char* getName() { return name.c_str();}
+        const char* getName() const { return name.c_str();}
         void setParents(uint32_t _childId, const g_vector<MemObject*>& parents, Network* network);
         void setChildren(const g_vector<BaseCache*>& children, Network* network);
 

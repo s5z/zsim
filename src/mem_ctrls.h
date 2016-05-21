@@ -40,7 +40,7 @@ class SimpleMemory : public MemObject {
     public:
         uint64_t access(MemReq& req);
 
-        const char* getName() {return name.c_str();}
+        const char* getName() const {return name.c_str();}
 
         SimpleMemory(uint32_t _latency, g_string& _name) : name(_name), latency(_latency) {}
 };
@@ -91,7 +91,7 @@ class MD1Memory : public MemObject {
         //uint32_t access(Address lineAddr, AccessType type, uint32_t childId, MESIState* state /*both input and output*/, MESIState initialState, lock_t* childLock);
         uint64_t access(MemReq& req);
 
-        const char* getName() {return name.c_str();}
+        const char* getName() const {return name.c_str();}
 
     private:
         void updateLatency();
