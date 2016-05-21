@@ -320,7 +320,7 @@ class MemControllerBase : public MemObject {
         MemControllerBase(g_string _memCfg, uint32_t _cacheLineSize, uint32_t _sysFreqMHz, uint32_t _domain, g_string& _name);
         virtual ~MemControllerBase();
 
-        const char* getName() { return name.c_str(); }
+        const char* getName() const { return name.c_str(); }
         void enqueue(MemAccessEventBase* ev, uint64_t cycle);
         uint64_t access(MemReq& req);
         uint32_t tick(uint64_t sysCycle);

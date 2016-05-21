@@ -31,7 +31,7 @@
  * should probably have a class that deals with this with a real hash function
  * (TODO)
  */
-uint32_t MESIBottomCC::getParentId(Address lineAddr) {
+uint32_t MESIBottomCC::getParentId(Address lineAddr) const {
     //Hash things a bit
     uint32_t res = 0;
     uint64_t tmp = lineAddr;

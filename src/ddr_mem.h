@@ -264,7 +264,7 @@ class DDRMemory : public MemObject {
             uint32_t _domain, g_string& _name);
 
         void initStats(AggregateStat* parentStat);
-        const char* getName() {return name.c_str();}
+        const char* getName() const {return name.c_str();}
 
         // Bound phase interface
         uint64_t access(MemReq& req);

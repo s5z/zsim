@@ -63,7 +63,7 @@ class DRAMSimMemory : public MemObject { //one DRAMSim controller
         DRAMSimMemory(std::string& dramTechIni, std::string& dramSystemIni, std::string& outputDir, std::string& traceName, uint32_t capacityMB,
                 uint64_t cpuFreqHz,  uint32_t _minLatency, uint32_t _domain, const g_string& _name);
 
-        const char* getName() {return name.c_str();}
+        const char* getName() const {return name.c_str();}
 
         void initStats(AggregateStat* parentStat);
 
@@ -99,7 +99,7 @@ class SplitAddrMemory : public MemObject {
             return respCycle;
         }
 
-        const char* getName() {
+        const char* getName() const {
             return name.c_str();
         }
 
