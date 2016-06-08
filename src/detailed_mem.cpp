@@ -621,7 +621,7 @@ void MemChannelBase::AddressMap(Address addr, uint32_t& row, uint32_t& col, uint
     }
 
     uint32_t chnl = (uint32_t)-1;
-    if (mParam->interleaveType >= 0 && mParam->interleaveType <= 5) {
+    if (mParam->interleaveType <= 5) {
         // for non-power of 2 channels
         chnl = addr % mParam->channelCount;
         addr /= mParam->channelCount;
