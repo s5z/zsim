@@ -197,7 +197,7 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
     // Check preconditions
     // FIXME, shouldn't this use safeCopy??
     if (!ts) return NullPostPatch;  // kernel will return EFAULT
-    if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec > 999999999) return false;  // kernel will return EINVAL
+    if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec > 999999999) return NullPostPatch;  // kernel will return EINVAL
 
     uint64_t waitNsec = timespecToNs(*ts);
     if (waitNsec >= offsetNsec) waitNsec -= offsetNsec;
