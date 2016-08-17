@@ -61,6 +61,10 @@ H3HashFamily::H3HashFamily(uint32_t numFunctions, uint32_t outputBits, uint64_t 
     }
 }
 
+H3HashFamily::~H3HashFamily() {
+    gm_free(hMatrix);
+}
+
 /* NOTE: This is fairly well hand-optimized. Go to the commit logs to see the speedup of this function. Main things:
  * 1. resShift indicates how many bits of output are computed (64, 32, 16, or 8). With less than 64 bits, several rounds are folded at the end.
  * 2. The output folding does not mask, the output is expected to be masked by caller.
