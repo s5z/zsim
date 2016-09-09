@@ -1012,6 +1012,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     config.get<uint32_t>("sim.gmMBytes", (1 << 10));
     if (!zinfo->attachDebugger) config.get<bool>("sim.deadlockDetection", true);
     config.get<bool>("sim.aslr", false);
+    config.get<const char*>("sim.outputDir", nullptr);
 
     //Write config out
     bool strictConfig = config.get<bool>("sim.strictConfig", true); //if true, panic on unused variables
