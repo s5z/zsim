@@ -58,7 +58,7 @@ void VirtInit() {
     for (uint32_t i = 0; i < MAX_SYSCALLS; i++) prePatchFunctions[i] = NullPatch;
 
     // Issue warnings on timing-sensitive syscalls
-    for (uint32_t syscall : {SYS_select, SYS_getitimer, SYS_alarm, SYS_setitimer, SYS_semop,
+    for (uint32_t syscall : {SYS_select, SYS_getitimer, SYS_setitimer, SYS_semop,
             SYS_gettimeofday, SYS_times, SYS_rt_sigtimedwait, SYS_time, SYS_futex, SYS_mq_timedsend,
             SYS_mq_timedreceive, SYS_pselect6, SYS_ppoll}) {
         prePatchFunctions[syscall] = WarnTimingRelated;
