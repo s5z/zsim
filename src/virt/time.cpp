@@ -180,17 +180,17 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
     struct timespec* ts;
     uint64_t offsetNsec = 0;
     if (isClock) {
-        trace(TimeVirt, "[%d] Pre-patching SYS_clock_nanosleep", tid);
+        trace(TimeVirt, "[%d] Pre-patching SYS_clock_nanosleep", args.tid);
         int flags = (int) PIN_GetSyscallArgument(ctxt, std, 1);
         ts = (struct timespec*) PIN_GetSyscallArgument(ctxt, std, 2);
         if (flags == TIMER_ABSTIME) {
-            trace(TimeVirt, "[%d] SYS_clock_nanosleep requests TIMER_ABSTIME, offsetting", tid);
+            trace(TimeVirt, "[%d] SYS_clock_nanosleep requests TIMER_ABSTIME, offsetting", args.tid);
             uint32_t domain = zinfo->procArray[procIdx]->getClockDomain();
             uint64_t simNs = cyclesToNs(zinfo->globPhaseCycles);
             offsetNsec = simNs + zinfo->clockDomainInfo[domain].realtimeOffsetNs;
         }
     } else {
-        trace(TimeVirt, "[%d] Pre-patching SYS_nanosleep", tid);
+        trace(TimeVirt, "[%d] Pre-patching SYS_nanosleep", args.tid);
         ts = (struct timespec*) PIN_GetSyscallArgument(ctxt, std, 0);
     }
 
@@ -228,9 +228,9 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
         SYSCALL_STANDARD std = args.std;
 
         if (isClock) {
-            trace(TimeVirt, "[%d] Post-patching SYS_clock_nanosleep", tid);
+            trace(TimeVirt, "[%d] Post-patching SYS_clock_nanosleep", args.tid);
         } else {
-            trace(TimeVirt, "[%d] Post-patching SYS_nanosleep", tid);
+            trace(TimeVirt, "[%d] Post-patching SYS_nanosleep", args.tid);
         }
 
         int res = (int)(-PIN_GetSyscallNumber(ctxt, std));
