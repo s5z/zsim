@@ -180,24 +180,24 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
     struct timespec* ts;
     uint64_t offsetNsec = 0;
     if (isClock) {
-        trace(TimeVirt, "[%d] Pre-patching SYS_clock_nanosleep", tid);
+        trace(TimeVirt, "[%d] Pre-patching SYS_clock_nanosleep", args.tid);
         int flags = (int) PIN_GetSyscallArgument(ctxt, std, 1);
         ts = (struct timespec*) PIN_GetSyscallArgument(ctxt, std, 2);
         if (flags == TIMER_ABSTIME) {
-            trace(TimeVirt, "[%d] SYS_clock_nanosleep requests TIMER_ABSTIME, offsetting", tid);
+            trace(TimeVirt, "[%d] SYS_clock_nanosleep requests TIMER_ABSTIME, offsetting", args.tid);
             uint32_t domain = zinfo->procArray[procIdx]->getClockDomain();
             uint64_t simNs = cyclesToNs(zinfo->globPhaseCycles);
             offsetNsec = simNs + zinfo->clockDomainInfo[domain].realtimeOffsetNs;
         }
     } else {
-        trace(TimeVirt, "[%d] Pre-patching SYS_nanosleep", tid);
+        trace(TimeVirt, "[%d] Pre-patching SYS_nanosleep", args.tid);
         ts = (struct timespec*) PIN_GetSyscallArgument(ctxt, std, 0);
     }
 
     // Check preconditions
     // FIXME, shouldn't this use safeCopy??
     if (!ts) return NullPostPatch;  // kernel will return EFAULT
-    if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec > 999999999) return false;  // kernel will return EINVAL
+    if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec > 999999999) return NullPostPatch;  // kernel will return EINVAL
 
     uint64_t waitNsec = timespecToNs(*ts);
     if (waitNsec >= offsetNsec) waitNsec -= offsetNsec;
@@ -228,9 +228,9 @@ PostPatchFn PatchNanosleep(PrePatchArgs args) {
         SYSCALL_STANDARD std = args.std;
 
         if (isClock) {
-            trace(TimeVirt, "[%d] Post-patching SYS_clock_nanosleep", tid);
+            trace(TimeVirt, "[%d] Post-patching SYS_clock_nanosleep", args.tid);
         } else {
-            trace(TimeVirt, "[%d] Post-patching SYS_nanosleep", tid);
+            trace(TimeVirt, "[%d] Post-patching SYS_nanosleep", args.tid);
         }
 
         int res = (int)(-PIN_GetSyscallNumber(ctxt, std));
@@ -307,3 +307,42 @@ uint64_t VirtGetPhaseRDTSC() {
     return zinfo->clockDomainInfo[domain].rdtscOffset + zinfo->globPhaseCycles;
 }
 
+// SYS_alarm
+
+PostPatchFn PatchAlarmSyscall(PrePatchArgs args) {
+    if (SkipTimeVirt(args)) return NullPostPatch;
+
+    CONTEXT* ctxt = args.ctxt;
+    SYSCALL_STANDARD std = args.std;
+    uint32_t syscall = PIN_GetSyscallNumber(ctxt, std);
+    assert(syscall == SYS_alarm);
+    trace(TimeVirt, "Patching SYS_alarm");
+
+    //Determine when in the future to send SIGALRM and enqueue it
+    unsigned int secs = (unsigned int) PIN_GetSyscallArgument(ctxt, std, 0);
+    uint64_t waitNsecs = 1000000000UL * (uint64_t) secs;
+    uint64_t waitCycles = nsToCycles(waitNsecs);
+    uint64_t waitPhases = waitCycles/zinfo->phaseLength + 1; //wait at least 1 phase
+    uint64_t alarmPhase = zinfo->numPhases + waitPhases;
+    unsigned int priorAlarmTime = zinfo->sched->scheduleAlarm(alarmPhase, getpid());
+
+    //Turn this into a NOP by setting the argument to 0 (clears old timers)
+    PIN_SetSyscallArgument(ctxt, std, 0, 0);
+
+    //Postpatch is to restore the arg and set the return value
+    return [secs, priorAlarmTime](PostPatchArgs args) {
+        CONTEXT* ctxt = args.ctxt;
+        SYSCALL_STANDARD std = args.std;
+
+        //Restore pre-call argument
+        PIN_SetSyscallArgument(ctxt, std, 0, secs);
+
+        //Set the return value in rax
+        PIN_REGISTER reg;
+        reg.dword[0] = priorAlarmTime;
+        reg.dword[1] = 0;
+        PIN_SetContextRegval(ctxt, LEVEL_BASE::REG_EAX, (UINT8*)&reg);
+
+        return PPA_NOTHING;
+    };
+}

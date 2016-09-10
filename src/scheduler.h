@@ -42,6 +42,7 @@
 #include "proc_stats.h"
 #include "process_stats.h"
 #include "stats.h"
+#include "virt/time_conv.h"
 #include "zsim.h"
 
 /**
@@ -142,6 +143,15 @@ class Scheduler : public GlobAlloc, public Callee {
         InList<ThreadInfo> runQueue;
         InList<ThreadInfo> outQueue;
         InList<ThreadInfo> sleepQueue; //contains all the sleeping threads, it is ORDERED by wakeup time
+
+        //Use a signal delivery queue as a mechanism for delivering process signals at a future time.
+        //One use case for this is to virtualize alarm().
+        struct SignalInfo : InListNode<SignalInfo> {
+            uint64_t phase; //phase at which to send a signal to the process
+            int sig; //signal number to send
+            int pid; //signal recipient process
+        };
+        InList<SignalInfo> signalQueue;
 
         PAD();
         lock_t schedLock;
@@ -452,12 +462,75 @@ class Scheduler : public GlobAlloc, public Callee {
                 }
             }
 
+            //Check for pending signals that are ready to be sent to the process
+            if (!signalQueue.empty()) {
+                SignalInfo* si = signalQueue.front();
+                while (si && si->phase <= curPhase) {
+                    assert(si->phase == curPhase);
+                    trace(Sched, "Sending delayed signal %d at phase %ld", si->sig, curPhase);
+
+                    //Note that if you need to target a specific thread, SYS_tgkill could be made to work here
+                    //TODO: syscall sets errno, is this safe? (also happens in TrueSleep)
+                    syscall(SYS_kill, si->pid, si->sig);
+
+                    signalQueue.pop_front();
+                    delete si;
+                    si = signalQueue.front();
+                }
+            }
+
             //Handle rescheduling
             if (runQueue.empty()) return;
 
             if ((curPhase % schedQuantum) == 0) {
                 schedTick();
             }
+        }
+
+        //Schedule a signal for future delivery to the process
+        void scheduleSignal(int sig, uint64_t phase, pid_t pid) {
+            futex_lock(&schedLock);
+            SignalInfo* si = new SignalInfo(); //delete when dequeued
+            si->phase = phase;
+            si->sig = sig;
+            si->pid = pid;
+            trace(Sched, "Queueing signal %d for pid %d phase %lu (cur %lu, delta %lu)", pid, sig, phase, curPhase, phase-curPhase);
+
+            //Ordered insert into signalQueue
+            if (signalQueue.empty() || signalQueue.front()->phase > si->phase) {
+                signalQueue.push_front(si);
+            } else {
+                SignalInfo* cur = signalQueue.front();
+                while (cur->next && cur->next->phase <= si->phase) {
+                    cur = cur->next;
+                }
+                signalQueue.insertAfter(cur, si);
+            }
+            futex_unlock(&schedLock);
+        }
+
+        //A wrapper around scheduleSignal() to support the virtualization of SYS_alarm:
+        //The return value is the number of seconds remaining for a prior alarm (if any)
+        unsigned int scheduleAlarm(uint64_t phase, pid_t pid) {
+            futex_lock(&schedLock);
+
+            // Check if there was a prior alarm count-down and how much time it had
+            uint64_t priorPhaseRemain = 0;
+            unsigned int priorSecRemain = 0;
+            SignalInfo* si = signalQueue.front();
+            while (si) {
+                if (si->pid == pid && si->sig == 14) { //TODO: Don't hard-code SIGALRM, but including signal.h is problematic
+                    priorPhaseRemain = si->phase - curPhase;
+                    uint64_t priorCyclesRemain = priorPhaseRemain * zinfo->phaseLength;
+                    priorSecRemain = (unsigned int) (cyclesToNs(priorCyclesRemain) / NSPS);
+                    break;
+                }
+                si = si->next;
+            }
+            trace(Sched, "Last alarm had %u seconds remaining", priorSecRemain);
+            futex_unlock(&schedLock);
+            scheduleSignal(14, phase, pid);
+            return priorSecRemain;
         }
 
         volatile uint32_t* markForSleep(uint32_t pid, uint32_t tid, uint64_t wakeupPhase) {

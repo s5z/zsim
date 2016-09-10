@@ -4166,7 +4166,7 @@ static void* sys_alloc(mstate m, size_t nb) {
 /* Unmap and unlink any mmapped segments that don't contain used chunks */
 static size_t release_unused_segments(mstate m) {
   size_t released = 0;
-  unsigned int nsegs = 0; //dsm: Was signed, and gcc was complaining about signed vs unsigned comparisons
+  size_t nsegs = 0;
   msegmentptr pred = &m->seg;
   msegmentptr sp = pred->next;
   while (sp != 0) {

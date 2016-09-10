@@ -28,6 +28,7 @@
 #define VIRT_TIME_CONV_H_
 
 #include <unistd.h>
+#include "zsim.h"
 
 // Helper functions to translate between ns, timespec/timeval, and cycles
 
@@ -60,8 +61,8 @@ static inline uint64_t cyclesToNs(uint64_t cycles) {
     return cycles*1000/zinfo->freqMHz;
 }
 
-static inline uint64_t nsToCycles(uint64_t cycles) {
-    return cycles*zinfo->freqMHz/1000;
+static inline uint64_t nsToCycles(uint64_t ns) {
+    return ns*zinfo->freqMHz/1000;
 }
 
 #endif  // VIRT_TIME_CONV_H_

@@ -59,7 +59,7 @@ PostPatchFn PatchGetcpu(PrePatchArgs args) {
     uint32_t cpu = cpuenumCpu(procIdx, getCid(args.tid));  // still valid, may become invalid when we leave()
     assert(cpu != (uint32_t)-1);
     return [cpu](PostPatchArgs args) {
-        trace(TimeVirt, "[%d] Post-patching SYS_getcpu", tid);
+        trace(TimeVirt, "[%d] Post-patching SYS_getcpu", args.tid);
         ADDRINT arg0 = PIN_GetSyscallArgument(args.ctxt, args.std, 0);
         ADDRINT arg1 = PIN_GetSyscallArgument(args.ctxt, args.std, 1);
         VirtGetcpu(args.tid, cpu, arg0, arg1);

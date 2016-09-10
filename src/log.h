@@ -169,7 +169,12 @@ class PrintExpr {
 #define trace(type, args...)
 #endif
 
-
+/* assert() is already defined as of POSIX.1-2001 and C89.
+ * Since we are overriding it here we need to make sure we don't create a macro
+ * redefinition, despite not having '#include <assert.h>' in zsim.
+ * (E.g., some environments might include <assert.h> in their system/startup files.)
+ */
+#undef assert
 #ifndef NASSERT
 #define assert(expr) \
 if (unlikely(!(expr))) { \
