@@ -324,7 +324,7 @@ PostPatchFn PatchAlarmSyscall(PrePatchArgs args) {
     uint64_t waitCycles = nsToCycles(waitNsecs);
     uint64_t waitPhases = waitCycles/zinfo->phaseLength + 1; //wait at least 1 phase
     uint64_t alarmPhase = zinfo->numPhases + waitPhases;
-    unsigned int priorAlarmTime = zinfo->sched->scheduleAlarm(alarmPhase);
+    unsigned int priorAlarmTime = zinfo->sched->scheduleAlarm(alarmPhase, getpid());
 
     //Turn this into a NOP by setting the argument to 0 (clears old timers)
     PIN_SetSyscallArgument(ctxt, std, 0, 0);

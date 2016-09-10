@@ -149,6 +149,7 @@ class Scheduler : public GlobAlloc, public Callee {
         struct SignalInfo : InListNode<SignalInfo> {
             uint64_t phase; //phase at which to send a signal to the process
             int sig; //signal number to send
+            int pid; //signal recipient process
         };
         InList<SignalInfo> signalQueue;
 
@@ -470,7 +471,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
                     //Note that if you need to target a specific thread, SYS_tgkill could be made to work here
                     //TODO: syscall sets errno, is this safe? (also happens in TrueSleep)
-                    syscall(SYS_kill, getpid(), si->sig);
+                    syscall(SYS_kill, si->pid, si->sig);
 
                     signalQueue.pop_front();
                     delete si;
@@ -487,12 +488,13 @@ class Scheduler : public GlobAlloc, public Callee {
         }
 
         //Schedule a signal for future delivery to the process
-        void scheduleSignal(int sig, uint64_t phase) {
+        void scheduleSignal(int sig, uint64_t phase, pid_t pid) {
             futex_lock(&schedLock);
             SignalInfo* si = new SignalInfo(); //delete when dequeued
             si->phase = phase;
             si->sig = sig;
-            trace(Sched, "Queueing signal %d for phase %lu (cur %lu, delta %lu)", sig, phase, curPhase, phase-curPhase);
+            si->pid = pid;
+            trace(Sched, "Queueing signal %d for pid %d phase %lu (cur %lu, delta %lu)", pid, sig, phase, curPhase, phase-curPhase);
 
             //Ordered insert into signalQueue
             if (signalQueue.empty() || signalQueue.front()->phase > si->phase) {
@@ -509,7 +511,7 @@ class Scheduler : public GlobAlloc, public Callee {
 
         //A wrapper around scheduleSignal() to support the virtualization of SYS_alarm:
         //The return value is the number of seconds remaining for a prior alarm (if any)
-        unsigned int scheduleAlarm(uint64_t phase) {
+        unsigned int scheduleAlarm(uint64_t phase, pid_t pid) {
             futex_lock(&schedLock);
 
             // Check if there was a prior alarm count-down and how much time it had
@@ -517,7 +519,7 @@ class Scheduler : public GlobAlloc, public Callee {
             unsigned int priorSecRemain = 0;
             SignalInfo* si = signalQueue.front();
             while (si) {
-                if (si->sig == 14) { //TODO: Don't hard-code SIGALRM, but including signal.h is problematic
+                if (si->pid == pid && si->sig == 14) { //TODO: Don't hard-code SIGALRM, but including signal.h is problematic
                     priorPhaseRemain = si->phase - curPhase;
                     uint64_t priorCyclesRemain = priorPhaseRemain * zinfo->phaseLength;
                     priorSecRemain = (unsigned int) (cyclesToNs(priorCyclesRemain) / NSPS);
@@ -527,7 +529,7 @@ class Scheduler : public GlobAlloc, public Callee {
             }
             trace(Sched, "Last alarm had %u seconds remaining", priorSecRemain);
             futex_unlock(&schedLock);
-            scheduleSignal(14, phase);
+            scheduleSignal(14, phase, pid);
             return priorSecRemain;
         }
 
