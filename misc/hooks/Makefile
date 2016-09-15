@@ -6,7 +6,7 @@ JDK_PATH=$(shell dirname $(shell dirname $(shell (readlink -f `which javac`))))
 # Common deps
 DEPS=Makefile zsim_hooks.h
 
-default: test_c test_cpp test_fortran test.class test_affinity
+default: test_c test_cpp test_fortran test.class
 
 libfortran_hooks.a: $(DEPS)
 	gcc -O3 -g -fPIC -o fortran_hooks.o -c fortran_hooks.c
@@ -31,15 +31,11 @@ test_fortran: $(DEPS) test.f libfortran_hooks.a
 test.class: $(DEPS) test.java zsim.class
 	$(JDK_PATH)/bin/javac test.java
 
-test_affinity: $(DEPS) test-affinity.cpp
-	g++ -O3 -g -o test_affinity test-affinity.cpp -pthread
-
-run_tests: test_c test_cpp test_fortran test.class test_affinity
+run_tests: test_c test_cpp test_fortran test.class
 	./test_c
 	./test_cpp
 	./test_fortran
 	java -Djava.library.path=. test
-	./test_affinity
 
 clean:
 	rm -f *.o *.so *.a *.jar *.class test_* zsim_jni.h
