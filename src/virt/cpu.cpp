@@ -99,6 +99,7 @@ PostPatchFn PatchSchedSetaffinity(PrePatchArgs args) {
         warn("SYS_sched_getaffinity cannot find thread with OS id %u, ignored!", linuxTid);
         PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT) SYS_getpid);  // squash
         return [](PostPatchArgs args) {
+            PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)-EPERM);
             return PPA_NOTHING;
         };
     }
@@ -114,6 +115,7 @@ PostPatchFn PatchSchedSetaffinity(PrePatchArgs args) {
     }
     PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT) SYS_getpid);  // squash
     return [](PostPatchArgs args) {
+        PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)0);  // return 0 on success
         return PPA_USE_JOIN_PTRS;
     };
 }
