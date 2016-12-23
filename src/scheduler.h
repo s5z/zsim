@@ -560,7 +560,10 @@ class Scheduler : public GlobAlloc, public Callee {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
             if(gidMap.find(gid) == gidMap.end()) {
-                panic("Scheduler::getMask(): can't find thread info pid=%d, tid=%d", pid, tid);
+                futex_unlock(&schedLock);
+                warn("Scheduler::getMask(): can't find thread info pid=%d, tid=%d", pid, tid);
+                mask.resize(zinfo->numCores, true);
+                return mask;
             }
             ThreadInfo* th = gidMap[gid];
             mask = th->mask;
@@ -572,7 +575,9 @@ class Scheduler : public GlobAlloc, public Callee {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
             if(gidMap.find(gid) == gidMap.end()) {
-                panic("Scheduler::updateMask(): can't find thread info pid=%d, tid=%d", pid, tid);
+                futex_unlock(&schedLock);
+                warn("Scheduler::updateMask(): can't find thread info pid=%d, tid=%d", pid, tid);
+                return;
             }
             ThreadInfo* th = gidMap[gid];
             //info("Scheduler::updateMask(): update thread mask pid=%d, tid=%d", pid, tid);
