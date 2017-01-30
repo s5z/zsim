@@ -48,6 +48,10 @@ def buildSim(cppFlags, dir, type, pgo=None):
     # NOTE (dsm 16 Apr 2015): Update flags code to support Pin 2.14 while retaining backwards compatibility
     env["CPPFLAGS"] += " -g -std=c++0x -Wall -Wno-unknown-pragmas -fomit-frame-pointer -fno-stack-protector"
     env["CPPFLAGS"] += " -MMD -DBIGARRAY_MULTIPLIER=1 -DUSING_XED -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX"
+    # NOTE: (mgao Jan 2017): Pin 2.14 requires ABI version of 1002, while gcc-5 and later bumps the API version.
+    # Switch to gcc-4.x by using -fabi-version=2
+    # FIXME(mgao): update this when upgraded to Pin 3.x
+    env["CPPFLAGS"] += " -fabi-version=2  -D_GLIBCXX_USE_CXX11_ABI=0"
 
     # Pin 2.12+ kits have changed the layout of includes, detect whether we need
     # source/include/ or source/include/pin/
