@@ -25,8 +25,18 @@
 
 #include "access_tracing.h"
 #include "bithacks.h"
+
+#define _STR(x) #x
+#define STR(x) _STR(x)
+#ifdef HDF5INCPREFIX
+#include STR(HDF5INCPREFIX/hdf5.h)
+#include STR(HDF5INCPREFIX/hdf5_hl.h)
+#else
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#endif
+#undef STR
+#undef _STR
 
 #define PT_CHUNKSIZE (1024*256u)  // 256K records (~6MB)
 

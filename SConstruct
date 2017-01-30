@@ -143,7 +143,16 @@ def buildSim(cppFlags, dir, type, pgo=None):
     env["CPPPATH"] += ["."]
 
     # HDF5
-    env["PINLIBS"] += ["hdf5", "hdf5_hl"]
+    conf = Configure(Environment(), conf_dir=joinpath(buildDir, ".sconf_temp"), log_file=joinpath(buildDir, "sconf.log"))
+    if conf.CheckLib('hdf5') and conf.CheckLib('hdf5_hl'):
+        env["PINLIBS"] += ["hdf5", "hdf5_hl"]
+    elif conf.CheckLib('hdf5_serial') and conf.CheckLib('hdf5_serial_hl'):
+        # Serial version, in Ubuntu 15.04 and later.
+        env["PINLIBS"] += ["hdf5_serial", "hdf5_serial_hl"]
+        env["CPPFLAGS"] += ' -DHDF5INCPREFIX="hdf5/serial/"'
+    else:
+       print "ERROR: You need to install libhdf5 in the system"
+       sys.exit(1)
 
     # Harness needs these defined
     env["CPPFLAGS"] += ' -DPIN_PATH="' + joinpath(PINPATH, "intel64/bin/pinbin") + '" '

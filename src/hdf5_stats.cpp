@@ -23,9 +23,19 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
+#define _STR(x) #x
+#define STR(x) _STR(x)
+#ifdef HDF5INCPREFIX
+#include STR(HDF5INCPREFIX/hdf5.h)
+#include STR(HDF5INCPREFIX/hdf5_hl.h)
+#else
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#endif
+#undef STR
+#undef _STR
+
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include "galloc.h"
