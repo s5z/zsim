@@ -271,11 +271,16 @@ class Scheduler : public GlobAlloc, public Callee {
                 assert(th->owner == &outQueue);
                 outQueue.remove(th);
                 ContextInfo* ctx = &contexts[th->cid];
-                deschedule(th, ctx, BLOCKED);
-                freeList.push_back(ctx);
-                //no need to try to schedule anything; this context was already being considered while in outQueue
-                //assert(runQueue.empty()); need not be the case with masks
-                DEBUG_SCHEDULER("[G %d] Removed from outQueue and descheduled", gid);
+                // descheduling finishing thread on the condition that it has been scheduled
+                if (ctx->curThread == th) {
+                    deschedule(th, ctx, BLOCKED);
+                    freeList.push_back(ctx);
+                    //no need to try to schedule anything; this context was already being considered while in outQueue
+                    //assert(runQueue.empty()); need not be the case with masks
+                    DEBUG_SCHEDULER("[G %d] Removed from outQueue and descheduled", gid);
+                } else {
+                    DEBUG_SCHEDULER("[G %d] Removed from outQueue", gid);
+                }
             }
             //At this point noone holds pointer to th, it's out from all queues, and either on OUT or BLOCKED means it's not pending a handoff
             delete th;
