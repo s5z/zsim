@@ -44,6 +44,9 @@
 #include "stats.h"
 #include "zsim.h"
 
+//#define DEBUG_SCHEDULER(args...) info(args)
+#define DEBUG_SCHEDULER(args...)
+
 /**
  * TODO (dsm): This class is due for a heavy pass or rewrite. Some things are more complex than they should:
  * - The OUT state is unnecessary. It is done as a weak link between a thread that left and its context to preserve affinity, but
@@ -220,7 +223,7 @@ class Scheduler : public GlobAlloc, public Callee {
         void start(uint32_t pid, uint32_t tid, const g_vector<bool>& mask) {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
-            //info("[G %d] Start", gid);
+            DEBUG_SCHEDULER("[G %d] Start", gid);
             assert((gidMap.find(gid) == gidMap.end()));
             // Get pid and tid straight from the OS
             // - SYS_gettid because glibc does not implement gettid()
@@ -237,7 +240,7 @@ class Scheduler : public GlobAlloc, public Callee {
         void finish(uint32_t pid, uint32_t tid) {
             futex_lock(&schedLock);
             uint32_t gid = getGid(pid, tid);
-            //info("[G %d] Finish", gid);
+            DEBUG_SCHEDULER("[G %d] Finish", gid);
             assert((gidMap.find(gid) != gidMap.end()));
             ThreadInfo* th = gidMap[gid];
             futex_lock(&gidMapLock);
@@ -272,7 +275,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 freeList.push_back(ctx);
                 //no need to try to schedule anything; this context was already being considered while in outQueue
                 //assert(runQueue.empty()); need not be the case with masks
-                //info("[G %d] Removed from outQueue and descheduled", gid);
+                DEBUG_SCHEDULER("[G %d] Removed from outQueue and descheduled", gid);
             }
             //At this point noone holds pointer to th, it's out from all queues, and either on OUT or BLOCKED means it's not pending a handoff
             delete th;
@@ -407,7 +410,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 schedule(dst, ctx);
                 wakeup(dst, false /*no join needed*/);
                 handoffEvents.inc();
-                //info("%d starting handoff cid %d to gid %d", th->gid, ctx->cid, dst->gid);
+                DEBUG_SCHEDULER("%d starting handoff cid %d to gid %d", th->gid, ctx->cid, dst->gid);
 
                 //We're descheduled and have completed the handoff. Now we need to see if we can be scheduled somewhere else.
                 ctx = schedThread(th);
@@ -573,7 +576,7 @@ class Scheduler : public GlobAlloc, public Callee {
             ctx->curThread = th;
             scheduleEvents.inc();
             scheduledThreads++;
-            //info("Scheduled %d <-> %d", th->gid, ctx->cid);
+            DEBUG_SCHEDULER("Scheduled %d <-> %d", th->gid, ctx->cid);
             zinfo->cores[ctx->cid]->contextSwitch(th->gid);
         }
 
@@ -592,26 +595,26 @@ class Scheduler : public GlobAlloc, public Callee {
             //TODO: we may need more callbacks in the cores, e.g. in schedule(). Revise interface as needed...
             zinfo->cores[ctx->cid]->contextSwitch(-1);
             zinfo->processStats->notifyDeschedule(ctx->cid, getPid(th->gid));
-            //info("Descheduled %d <-> %d", th->gid, ctx->cid);
+            DEBUG_SCHEDULER("Descheduled %d <-> %d", th->gid, ctx->cid);
         }
 
         void waitForContext(ThreadInfo* th) {
             th->futexWord = 1;
             waitEvents.inc();
-            //info("%d waiting to be scheduled", th->gid);
+            DEBUG_SCHEDULER("%d waiting to be scheduled", th->gid);
             //printState();
             futex_unlock(&schedLock);
             while (true) {
                 int futex_res = syscall(SYS_futex, &th->futexWord, FUTEX_WAIT, 1 /*a racing thread waking us up will change value to 0, and we won't block*/, nullptr, nullptr, 0);
                 if (futex_res == 0 || th->futexWord != 1) break;
             }
-            //info("%d out of sched wait, got cid = %d, needsJoin = %d", th->gid, th->cid, th->needsJoin);
+            DEBUG_SCHEDULER("%d out of sched wait, got cid = %d, needsJoin = %d", th->gid, th->cid, th->needsJoin);
             if (th->needsJoin) {
                 futex_lock(&schedLock);
                 assert(th->needsJoin); //re-check after the lock
                 zinfo->cores[th->cid]->join();
                 bar.join(th->cid, &schedLock);
-                //info("%d join done", th->gid);
+                DEBUG_SCHEDULER("%d join done", th->gid);
             }
         }
 
