@@ -24,11 +24,14 @@
  */
 
 #include "pin_cmd.h"
+#include <algorithm>
 #include <iostream>
+#include <linux/version.h>
 #include <sstream>
 #include <string>
 #include <wordexp.h> //for posix-shell command expansion
 #include "config.h"
+#include "pin.H"
 
 //Funky macro expansion stuff
 #define QUOTED_(x) #x
@@ -64,6 +67,14 @@ PinCmd::PinCmd(Config* conf, const char* configFile, const char* outputDir, uint
         args.push_back(g_string(p.we_wordv[i]));
     }
     wordfree(&p);
+
+    if (PIN_PRODUCT_VERSION_MAJOR <= 2 && LINUX_VERSION_CODE >= KERNEL_VERSION(4,0,0)
+            && std::find(args.begin(), args.end(), "-injection") == args.end()) {
+        // FIXME(mgao): hack to bypass kernel version check in Pin 2.x.
+        // Parent injection.
+        args.push_back("-injection");
+        args.push_back("parent");
+    }
 
     //Load tool
     args.push_back("-t");
