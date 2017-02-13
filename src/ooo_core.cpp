@@ -270,19 +270,19 @@ inline void OOOCore::bbl(Address bblAddr, BblInfo* bblInfo) {
                     if (addr != ((Address)-1L)) {
                         reqSatisfiedCycle = l1d->load(addr, dispatchCycle) + L1D_LAT;
                         cRec.record(curCycle, dispatchCycle, reqSatisfiedCycle);
-                    }
 
-                    // Enforce st-ld forwarding
-                    uint32_t fwdIdx = (addr>>2) & (FWD_ENTRIES-1);
-                    if (fwdArray[fwdIdx].addr == addr) {
-                        // info("0x%lx FWD %ld %ld", addr, reqSatisfiedCycle, fwdArray[fwdIdx].storeCycle);
-                        /* Take the MAX (see FilterCache's code) Our fwdArray
-                         * imposes more stringent timing constraints than the
-                         * l1d, b/c FilterCache does not change the line's
-                         * availCycle on a store. This allows FilterCache to
-                         * track per-line, not per-word availCycles.
-                         */
-                        reqSatisfiedCycle = MAX(reqSatisfiedCycle, fwdArray[fwdIdx].storeCycle);
+                        // Enforce st-ld forwarding
+                        uint32_t fwdIdx = (addr>>2) & (FWD_ENTRIES-1);
+                        if (fwdArray[fwdIdx].addr == addr) {
+                            // info("0x%lx FWD %ld %ld", addr, reqSatisfiedCycle, fwdArray[fwdIdx].storeCycle);
+                            /* Take the MAX (see FilterCache's code) Our fwdArray
+                             * imposes more stringent timing constraints than the
+                             * l1d, b/c FilterCache does not change the line's
+                             * availCycle on a store. This allows FilterCache to
+                             * track per-line, not per-word availCycles.
+                             */
+                            reqSatisfiedCycle = MAX(reqSatisfiedCycle, fwdArray[fwdIdx].storeCycle);
+                        }
                     }
 
                     commitCycle = reqSatisfiedCycle;
