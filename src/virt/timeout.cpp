@@ -84,25 +84,30 @@ static bool PrePatchTimeoutSyscall(uint32_t tid, CONTEXT* ctxt, SYSCALL_STANDARD
         int* uaddr = (int*) PIN_GetSyscallArgument(ctxt, std, 0);
         int op = (int) PIN_GetSyscallArgument(ctxt, std, 1);
         const struct timespec* timeout = (const struct timespec*) PIN_GetSyscallArgument(ctxt, std, 3);
+        uint64_t hostTimeoutNs = 0;
 
         //info("FUTEX op %d  waitOp %d uaddr %p ts %p", op, isFutexWaitOp(op), uaddr, timeout);
         if (!(uaddr && isFutexWaitOp(op) && timeout)) return false;  // not a timeout FUTEX_WAIT
 
-        waitNsec = timeout->tv_sec*1000000000L + timeout->tv_nsec;
+        waitNsec = timespecToNs(*timeout);
 
         if (op & FUTEX_CLOCK_REALTIME) {
             // NOTE: FUTEX_CLOCK_REALTIME is not a documented interface AFAIK, but looking at the Linux source code + with some verification, this is the xlat
+            struct timespec realtime;
             uint32_t domain = zinfo->procArray[procIdx]->getClockDomain();
             uint64_t simNs = cyclesToNs(zinfo->globPhaseCycles);
             uint64_t offsetNs = simNs + zinfo->clockDomainInfo[domain].realtimeOffsetNs;
-            //info(" REALTIME FUTEX: %ld %ld %ld %ld", waitNsec, simNs, offsetNs, waitNsec-offsetNs);
+            warn(" REALTIME FUTEX(%d): %ld %ld %ld %ld", op & FUTEX_CLOCK_REALTIME, waitNsec, simNs, offsetNs, waitNsec-offsetNs);
             waitNsec = (waitNsec > (int64_t)offsetNs)? (waitNsec - offsetNs) : 0;
+
+            clock_gettime(CLOCK_REALTIME, &realtime);
+            hostTimeoutNs = timespecToNs(realtime);
         }
 
         if (waitNsec <= 0) return false;  // while technically waiting, this does not block. I'm guessing this is done for trylocks? It's weird.
 
-        fakeTimeouts[tid].tv_sec = 0;
-        fakeTimeouts[tid].tv_nsec = 20*1000*1000;  // timeout every 20ms of actual host time
+        hostTimeoutNs += 20*1000*1000;  // timeout every 20ms of actual host time
+        fakeTimeouts[tid] = nsToTimespec(hostTimeoutNs);
         PIN_SetSyscallArgument(ctxt, std, 3, (ADDRINT)&fakeTimeouts[tid]);
     } else {
         assert(syscall == SYS_epoll_wait || syscall == SYS_epoll_pwait || syscall == SYS_poll);
@@ -149,11 +154,36 @@ static bool PostPatchTimeoutSyscall(uint32_t tid, CONTEXT* ctxt, SYSCALL_STANDAR
         retrySyscall = isSleeping;
     }
 
+    // Decide whether to retry when transitioning to FF
     if (retrySyscall && zinfo->procArray[procIdx]->isInFastForward()) {
-        warn("[%d] Fast-forwarding started, not retrying timeout syscall (%s)", tid, GetSyscallName(syscall));
-        retrySyscall = false;
         assert(isSleeping);
-        zinfo->sched->notifySleepEnd(procIdx, tid);
+        uint64_t waitPhasesToSleep = zinfo->sched->notifySleepEnd(procIdx, tid);
+        if (waitPhasesToSleep > 0) {
+            ADDRINT timeoutRemArgVal;
+            uint64_t waitCycles = waitPhasesToSleep * zinfo->phaseLength;
+            uint64_t waitNsec = waitCycles * 1000 / zinfo->freqMHz;
+
+            if (syscall == SYS_futex) {
+                int op = (int) PIN_GetSyscallArgument(ctxt, std, 1);
+                if (op & FUTEX_CLOCK_REALTIME) {
+                    struct timespec realtime;
+                    clock_gettime(CLOCK_REALTIME, &realtime);
+                    uint64_t offsetNs = timespecToNs(realtime);
+                    waitNsec += offsetNs;
+                    warn(" REALTIME FUTEX(%d) fast-forwarding retrial: %ld %ld %ld", op & FUTEX_CLOCK_REALTIME, waitNsec, offsetNs, waitNsec-offsetNs);
+                }
+                fakeTimeouts[tid] = nsToTimespec(waitNsec);
+                timeoutRemArgVal = (ADDRINT) & fakeTimeouts[tid];
+            } else {
+                assert(syscall == SYS_epoll_wait || syscall == SYS_epoll_pwait || syscall == SYS_poll);
+                timeoutRemArgVal = (ADDRINT) waitNsec / (1000 * 1000);
+            }
+            warn("[%d] Fast-forwarding started, retrying timeout syscall (%s)", tid, GetSyscallName(syscall));
+            PIN_SetSyscallArgument(ctxt, std, getTimeoutArg(syscall), timeoutRemArgVal);
+        } else {
+            warn("[%d] Fast-forwarding started, not retrying timeout syscall (%s)", tid, GetSyscallName(syscall));
+            retrySyscall = false;
+        }
     }
 
     if (retrySyscall) {
@@ -161,6 +191,17 @@ static bool PostPatchTimeoutSyscall(uint32_t tid, CONTEXT* ctxt, SYSCALL_STANDAR
         //info("[%d] post-patch, retrying, IP: 0x%lx -> 0x%lx", tid, curIp, prevIp);
         PIN_SetContextReg(ctxt, REG_INST_PTR, prevIp);
         PIN_SetSyscallNumber(ctxt, std, syscall);
+        if (syscall == SYS_futex) {
+            int op = (int) PIN_GetSyscallArgument(ctxt, std, 1);
+            if (op & FUTEX_CLOCK_REALTIME) {
+                struct timespec realtime;
+                uint64_t hostTimeoutNs;
+
+                clock_gettime(CLOCK_REALTIME, &realtime);
+                hostTimeoutNs = timespecToNs(realtime) + 20*1000*1000;  // timeout every 20ms of actual host time
+                fakeTimeouts[tid] = nsToTimespec(hostTimeoutNs);
+            }
+        }
     } else {
         // Restore timeout arg
         PIN_SetSyscallArgument(ctxt, std, getTimeoutArg(syscall), timeoutArgVal);

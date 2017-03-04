@@ -179,12 +179,12 @@ void Scheduler::watchdogThreadFunc() {
         }
 
         if (lastPhase == curPhase && scheduledThreads == outQueue.size() && !sleepQueue.empty()) {
-            //info("Watchdog Thread: Sleep dep detected...")
+            DEBUG_SCHEDULER("Watchdog Thread: Sleep dep detected...")
             int64_t wakeupPhase = sleepQueue.front()->wakeupPhase;
             int64_t wakeupCycles = (wakeupPhase - curPhase)*zinfo->phaseLength;
             int64_t wakeupUsec = (wakeupCycles > 0)? wakeupCycles/zinfo->freqMHz : 0;
 
-            //info("Additional usecs of sleep %ld", wakeupUsec);
+            DEBUG_SCHEDULER("Additional usecs of sleep %ld", wakeupUsec);
             if (wakeupUsec > 10*1000*1000) warn("Watchdog sleeping for a long time due to long sleep, %ld secs", wakeupUsec/1000/1000);
 
             futex_unlock(&schedLock);
@@ -206,7 +206,7 @@ void Scheduler::watchdogThreadFunc() {
 
                     if (futex_haswaiters(&schedLock)) {
                         //happens commonly with multiple sleepers and very contended I/O...
-                        //info("Sched: Threads waiting on advance, startPhase %ld curPhase %ld", lastPhase, curPhase);
+                        DEBUG_SCHEDULER("Sched: Threads waiting on advance, startPhase %ld curPhase %ld", lastPhase, curPhase);
                         break;
                     }
 

@@ -149,6 +149,8 @@ VOID FakeCPUIDPost(THREADID tid, ADDRINT* eax, ADDRINT* ebx, ADDRINT* ecx, ADDRI
 
 VOID FakeRDTSCPost(THREADID tid, REG* eax, REG* edx);
 
+VOID SyscallEnterUnlocked(THREADID tid, CONTEXT *ctxt);
+
 VOID VdsoInstrument(INS ins);
 VOID FFThread(VOID* arg);
 
@@ -591,6 +593,10 @@ VOID Instruction(INS ins) {
         INS_InsertCall(ins, IPOINT_AFTER, (AFUNPTR) FakeRDTSCPost, IARG_THREAD_ID, IARG_REG_REFERENCE, REG_EAX, IARG_REG_REFERENCE, REG_EDX, IARG_END);
     }
 
+    if (INS_IsSyscall(ins)) {
+        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) SyscallEnterUnlocked, IARG_CALL_ORDER, CALL_ORDER_LAST, IARG_THREAD_ID, IARG_CONTEXT, IARG_END);
+    }
+
     //Must run for every instruction
     VdsoInstrument(ins);
 }
@@ -803,7 +809,15 @@ VOID VdsoInstrument(INS ins) {
 
 
 bool activeThreads[MAX_THREADS];  // set in ThreadStart, reset in ThreadFini, we need this for exec() (see FollowChild)
-bool inSyscall[MAX_THREADS];  // set in SyscallEnter, reset in SyscallExit, regardless of state. We MAY need this for ContextChange
+bool inSyscall[MAX_THREADS];  // set in SyscallEnterUnlocked, reset in SyscallExit, regardless of state. We MAY need this for ContextChange
+
+#define MOD_SYSCALL_ARGS_NUM 6
+#define MOD_SYSCALL_NUMBER_INDEX 6
+#define MOD_SYSCALL_FLAG_INDEX 7
+#define MOD_SYSCALL_INDEXES 8
+// Per-thread storage to transfer modified syscall arguments between invocations of SyscallEnterUnlocked and SyscallEnterLocked.
+// Modified syscall args are stored at indexes [0:5], syscall number - at index 6, flag indicating modification - at index 7.
+static ADDRINT modifiedSyscallArgs[MAX_THREADS][MOD_SYSCALL_INDEXES]; // set in SyscallEnterUnlocked, used in SyscallEnterLocked
 
 uint32_t CountActiveThreads() {
     // Finish all threads in this process w.r.t. the global scheduler
@@ -884,13 +898,52 @@ VOID ThreadFini(THREADID tid, const CONTEXT *ctxt, INT32 flags, VOID *v) {
     }
 }
 
-//Need to remove ourselves from running threads in case the syscall is blocking
-VOID SyscallEnter(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
+// Saves modified syscall args in SyscallEnterUnlocked
+VOID SaveModifiedSyscallArgs(THREADID tid, CONTEXT *ctxtMod, CONTEXT *ctxtOrig) {
+    ADDRINT modified = 0;
+    SYSCALL_STANDARD std = SYSCALL_STANDARD_IA32E_LINUX;
+    if (PIN_GetSyscallNumber(ctxtMod, std) != PIN_GetSyscallNumber(ctxtOrig, std)) {
+        modified = 1;
+    }
+    for (uint32_t argInd = 0; (argInd < MOD_SYSCALL_ARGS_NUM) && !modified; argInd++) {
+        if (PIN_GetSyscallArgument(ctxtMod, std, argInd) != PIN_GetSyscallArgument(ctxtOrig, std, argInd)) {
+            modified = 1;
+        }
+    }
+    if (modified) {
+        modifiedSyscallArgs[tid][MOD_SYSCALL_NUMBER_INDEX] = PIN_GetSyscallNumber(ctxtMod, std);
+        for (uint32_t argInd = 0; argInd < MOD_SYSCALL_ARGS_NUM; argInd++) {
+            modifiedSyscallArgs[tid][argInd] = PIN_GetSyscallArgument(ctxtMod, std, argInd);
+        }
+        modifiedSyscallArgs[tid][MOD_SYSCALL_FLAG_INDEX] = modified;
+    }
+}
+
+// Writes modified syscall args in SyscallEnterLocked
+VOID WriteModifiedSyscallArgs(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std) {
+    assert(std == SYSCALL_STANDARD_IA32E_LINUX);
+    if (modifiedSyscallArgs[tid][MOD_SYSCALL_FLAG_INDEX]) {
+        PIN_SetSyscallNumber(ctxt, std, modifiedSyscallArgs[tid][MOD_SYSCALL_NUMBER_INDEX]);
+        for (uint32_t argInd = 0; argInd < MOD_SYSCALL_ARGS_NUM; argInd++) {
+            PIN_SetSyscallArgument(ctxt, std, argInd, modifiedSyscallArgs[tid][argInd]);
+        }
+        modifiedSyscallArgs[tid][MOD_SYSCALL_FLAG_INDEX] = 0;
+    }
+}
+
+// Performs action related to SyscallEnter without acquiring the Pin internal lock.
+// Need to remove ourselves from running threads in case the syscall is blocking.
+// Note: the rationale for having two methods SyscallEnterUnlocked and SyscallEnterLocked
+// is descibed at https://github.com/s5z/zsim/issues/57
+VOID SyscallEnterUnlocked(THREADID tid, CONTEXT *ctxt) {
+    CONTEXT ctxtOrig = *ctxt;
+    SYSCALL_STANDARD std = SYSCALL_STANDARD_IA32E_LINUX;
     bool isNopThread = fPtrs[tid].type == FPTR_NOP;
     bool isRetryThread = fPtrs[tid].type == FPTR_RETRY;
 
     if (!isRetryThread) {
         VirtSyscallEnter(tid, ctxt, std, procTreeNode->getPatchRoot(), isNopThread);
+        SaveModifiedSyscallArgs(tid, ctxt, &ctxtOrig);
     }
 
     assert(!inSyscall[tid]); inSyscall[tid] = true;
@@ -914,6 +967,12 @@ VOID SyscallEnter(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
         fPtrs[tid] = joinPtrs;  // will join at the next instr point
         //info("SyscallEnter %d", tid);
     }
+}
+
+// Performs action related to SyscallEnter with acquiring the Pin internal lock
+VOID SyscallEnterLocked(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
+    assert(inSyscall[tid]);
+    WriteModifiedSyscallArgs(tid, ctxt, std);
 }
 
 VOID SyscallExit(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, VOID *v) {
@@ -1535,7 +1594,7 @@ int main(int argc, char *argv[]) {
     PIN_AddThreadStartFunction(ThreadStart, 0);
     PIN_AddThreadFiniFunction(ThreadFini, 0);
 
-    PIN_AddSyscallEntryFunction(SyscallEnter, 0);
+    PIN_AddSyscallEntryFunction(SyscallEnterLocked, 0);
     PIN_AddSyscallExitFunction(SyscallExit, 0);
     PIN_AddContextChangeFunction(ContextChange, 0);
 
