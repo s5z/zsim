@@ -263,23 +263,25 @@ class Scheduler : public GlobAlloc, public Callee {
                 futex_lock(&schedLock);
             }
 
-            assert_msg(th->state == STARTED /*might be started but in fastFwd*/ ||th->state == OUT || th->state == BLOCKED || th->state == QUEUED, "gid %d finish with state %d", gid, th->state);
+            assert_msg(th->state == STARTED /*might be started but in fastFwd*/ ||th->state == OUT || th->state == BLOCKED || th->state == SLEEPING || th->state == QUEUED, "gid %d finish with state %d", gid, th->state);
             if (th->state == QUEUED) {
                 assert(th->owner == &runQueue);
                 runQueue.remove(th);
             } else if (th->owner) {
-                assert(th->owner == &outQueue);
-                outQueue.remove(th);
                 ContextInfo* ctx = &contexts[th->cid];
-                // descheduling finishing thread on the condition that it has been scheduled
                 if (ctx->curThread == th) {
+                    // descheduling finishing thread on the condition that it has been scheduled
+                    assert(th->owner == &outQueue);
+                    outQueue.remove(th);
                     deschedule(th, ctx, BLOCKED);
                     freeList.push_back(ctx);
                     //no need to try to schedule anything; this context was already being considered while in outQueue
                     //assert(runQueue.empty()); need not be the case with masks
                     DEBUG_SCHEDULER("[G %d] Removed from outQueue and descheduled", gid);
                 } else {
-                    DEBUG_SCHEDULER("[G %d] Removed from outQueue", gid);
+                    assert(th->owner == &sleepQueue);
+                    sleepQueue.remove(th);
+                    DEBUG_SCHEDULER("[G %d] Removed from sleepQueue", gid);
                 }
             }
             //At this point noone holds pointer to th, it's out from all queues, and either on OUT or BLOCKED means it's not pending a handoff
