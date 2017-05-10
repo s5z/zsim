@@ -23,6 +23,8 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Concatenate HDF5 header path prefix with the header file names, because
+// Ubuntu 15.04 and later change the HDF5 header path.
 #define _STR(x) #x
 #define STR(x) _STR(x)
 #ifdef HDF5INCPREFIX
