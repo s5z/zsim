@@ -65,7 +65,7 @@ uint64_t StreamPrefetcher::access(MemReq& req) {
     profAccesses.inc();
 
     uint64_t reqCycle = req.cycle;
-    uint64_t respCycle = parent->access(req);
+    uint64_t respCycle = reqCycle;
 
     Address pageAddr = req.lineAddr >> 6;
     uint32_t pos = req.lineAddr & (64-1);
@@ -139,7 +139,7 @@ uint64_t StreamPrefetcher::access(MemReq& req) {
                 if (prefetchPos < 64 && !e.valid[prefetchPos]) {
                     MESIState state = I;
                     MemReq pfReq = {req.lineAddr + prefetchPos - pos, GETS, req.childId, &state, reqCycle, req.childLock, state, req.srcId, MemReq::PREFETCH};
-                    uint64_t pfRespCycle = parent->access(pfReq);  // FIXME, might segfault
+                    uint64_t pfRespCycle = parent->access(pfReq);
                     e.valid[prefetchPos] = true;
                     e.times[prefetchPos].fill(reqCycle, pfRespCycle);
                     profPrefetches.inc();
@@ -179,6 +179,11 @@ uint64_t StreamPrefetcher::access(MemReq& req) {
     }
 
     req.childId = origChildId;
+
+    // Demand access must be executed _after_ any prefetch accesses to avoid a race
+    // condition that could invalidate the demand request before returning.
+    respCycle = MAX(respCycle, parent->access(req));
+
     return respCycle;
 }
 
@@ -186,5 +191,3 @@ uint64_t StreamPrefetcher::access(MemReq& req) {
 uint64_t StreamPrefetcher::invalidate(const InvReq& req) {
     return child->invalidate(req);
 }
-
-
