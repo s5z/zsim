@@ -3,7 +3,7 @@
 
 Vagrant::Config.run do |config|
   config.vm.box = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  config.vm.box_url = "https://vagrantcloud.com/hashicorp/boxes/precise64/versions/1.1.0/providers/virtualbox.box"
 
   config.vm.customize ["modifyvm", :id, "--memory", 4096]
   config.vm.customize ["modifyvm", :id, "--cpus", 4]
@@ -26,7 +26,7 @@ Vagrant::Config.run do |config|
 
     # Get Pin & set PINPATH
     #PINVER="pin-2.12-58423-gcc.4.4.7-linux"
-    PINVER="pin-2.13-62732-gcc.4.4.7-linux"
+    PINVER="pin-2.14-71313-gcc.4.4.7-linux"
     if [ ! -d ~vagrant/${PINVER} ]; then
         echo "Downloading Pin version ${PINVER}"
         sudo -u vagrant wget -nc -nv http://software.intel.com/sites/landingpage/pintool/downloads/${PINVER}.tar.gz
