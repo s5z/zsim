@@ -243,6 +243,35 @@ class Scheduler : public GlobAlloc, public Callee {
                 futex_lock(&schedLock);
             }
 
+            //###############################################################
+	        //jz: consider sleep threads for avoiding deadlocks
+            if (th->state == SLEEPING) {
+                info("[G %d] finish function ----- jz: ----- \n ################################ \n detected sleeping thread when called finish, pid %d, tid %d, gid %d, sleepQueue size: %lu", gid, pid, tid, gid, sleepQueue.size());
+                printState();
+                sleepQueue.remove(th);
+                th->state = BLOCKED;
+                info("[G %d] finish function ----- jz: ----- \n ################################ \n wakeup SLEEPING thread and is converted to be BLOCKED, pid %d, tid %d, gid %d, sleepQueue size: %lu \n ################################ \n", gid, pid, tid, gid, sleepQueue.size());
+                printState();
+            
+                assert(th->state == BLOCKED);
+
+                ContextInfo* ctx = schedThread(th);
+                if (ctx) {
+                    schedule(th, ctx);
+                    zinfo->cores[ctx->cid]->join();
+                    //////info("[G %d] join function ----- jz: ----- do join: a BLOCKED thread scheduled to be a RUNNING thread, pid %d, tid %d, gid %d", gid, pid, tid, gid);
+                    //////printState();
+                    bar.join(ctx->cid, &schedLock); //releases lock
+                } else {
+                    th->state = QUEUED;
+                    runQueue.push_back(th);
+                    waitForContext(th); //releases lock, might join
+                    ////info("[G %d] join function ----- jz: ----- do join: a BLOCKED thread scheduled to be a QUEUE thread, waiting for a avaliable context, pid %d, tid %d, gid %d", gid, pid, tid, gid);
+                    ////printState();
+                }
+	        }
+            //#################################################################
+            
             //dsm: Added this check; the normal sequence is leave, finish, but with fastFwd you never know
             if (th->state == RUNNING) {
                 warn("RUNNING thread %d (cid %d) called finish(), trying leave() first", tid, th->cid);
