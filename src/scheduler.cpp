@@ -398,6 +398,14 @@ void Scheduler::finishFakeLeave(ThreadInfo* th) {
 }
 
 void Scheduler::waitUntilQueued(ThreadInfo* th) {
+    if (th->linuxPid == syscall(SYS_getpid) && th->linuxTid == syscall(SYS_gettid)) {
+        // We are waiting for ourselves. Return immediately.
+        // This could happen when one thread is marked for sleep and gets into
+        // leave() and calls bar.leave(), which triggers end of phase and calls
+        // callback(), which wakes up sleeping threads, including itself, whose
+        // deadline is met.
+        return;
+    }
     uint64_t startNs = getNs();
     uint32_t sleepUs = 1;
     while(!IsSleepingInFutex(th->linuxPid, th->linuxTid, (uintptr_t)&schedLock)) {
