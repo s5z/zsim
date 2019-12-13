@@ -246,7 +246,7 @@ class Scheduler : public GlobAlloc, public Callee {
             //###############################################################
 	        //jz: consider sleep threads for avoiding deadlocks
             if (th->state == SLEEPING) {
-                info("[G %d] finish function ----- jz: ----- \n ################################ \n detected sleeping thread when called finish, pid %d, tid %d, gid %d, sleepQueue size: %lu", gid, pid, tid, gid, sleepQueue.size());
+                /// info("[G %d] finish function ----- jz: ----- \n ################################ \n detected sleeping thread when called finish, pid %d, tid %d, gid %d, sleepQueue size: %lu", gid, pid, tid, gid, sleepQueue.size());
                 printState();
                 sleepQueue.remove(th);
                 th->state = BLOCKED;
