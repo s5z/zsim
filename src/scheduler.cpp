@@ -153,11 +153,18 @@ void Scheduler::watchdogThreadFunc() {
 
                     uint64_t pc = fl->pc;
                     do {
+                        // NOTE(gaomy): to avoid race with join() if a thread is not actually blocked but just waiting too long (e.g., heavily loaded host).
+                        // Because we finish fake leave and release lock before doing actual leave, the join could happen in between,
+                        // when we haven't done leave.
+                        th->flWord = 1;
                         finishFakeLeave(th);
 
                         futex_unlock(&schedLock);
                         leave(pid, tid, cid);
                         futex_lock(&schedLock);
+
+                        th->flWord = 0;
+                        syscall(SYS_futex, &th->flWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
 
                         // also do real leave for other threads blocked at the same pc ...
                         fl = fakeLeaves.front();

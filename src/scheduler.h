@@ -107,6 +107,7 @@ class Scheduler : public GlobAlloc, public Callee {
             g_vector<bool> mask;
 
             FakeLeaveInfo* fakeLeave; // for accurate join-leaves, see below
+            volatile uint32_t flWord; // if non-zero, currently transiting fake leave to true leave
 
             FutexJoinInfo futexJoin;
 
@@ -124,6 +125,7 @@ class Scheduler : public GlobAlloc, public Callee {
                 for (auto b : mask) if (b) count++;
                 if (count == 0) panic("Empty mask on gid %d!", gid);
                 fakeLeave = nullptr;
+                flWord = 0;
                 futexJoin.action = FJA_NONE;
             }
         };
@@ -294,6 +296,14 @@ class Scheduler : public GlobAlloc, public Callee {
                 uint32_t cid = th->cid;
                 futex_unlock(&schedLock);
                 return cid;
+            } else if (th->flWord) {
+                // We are just finishing fake leave and transiting into true leave. Wait until done.
+                futex_unlock(&schedLock);
+                while (true) {
+                    int futex_res = syscall(SYS_futex, &th->flWord, FUTEX_WAIT, 1, nullptr, nullptr, 0);
+                    if (futex_res == 0 || th->futexWord != 1) break;
+                }
+                futex_lock(&schedLock);
             }
 
             assert(!th->markedForSleep);
