@@ -58,7 +58,7 @@ class ClockStat : public ScalarStat {
         void end() {
             assert(startNs);
             uint64_t endNs = getNs();
-            assert(endNs >= startNs)
+            assert(endNs >= startNs);
             totalNs += (endNs - startNs);
             startNs = 0;
         }
