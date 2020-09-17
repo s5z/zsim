@@ -69,7 +69,8 @@ External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0`
       define the env var `LIBCONFIGPATH=<libconfig install path>`.
 
   3.2 libhdf5, http://www.hdfgroup.org (v1.8.4 path 1 or higher), and libelfg0.
-      The SConstruct file assumes these are installed in the system.
+      The SConstruct file assumes these are installed in the system. If you build
+      libhdf5 locally, set `HDF5PATH==<libhdf5 install path>`.
 
   3.3 (OPTIONAL) polarssl (currently used just for their SHA-1 hash function),
       http://www.polarssl.org Install locally as in 3.1 and define the env var
@@ -98,6 +99,12 @@ code with --p. These improve simulation performance with OOO cores by about
 NOTE: zsim uses C++11 features available in `gcc >=4.6` (such as range-based for
 loops, strictly typed enums, lambdas, and type inference). Older version of gcc
 will not work. zsim can also be built with `icc` (see the `SConstruct` file).
+gcc-5 upgrades the default ABI version and Pin is built with the older gcc-4.x ABI.
+When building zsim with `gcc>=5` (default in newer Linux versions, e.g. gcc-7.5 in
+Ubuntu 18.04), the above dependencies are recommended to be built with the older
+gcc-4.x ABI by adding the `-fabi-version=2 -D_GLIBCXX_USE_CXX11_ABI=0` compiler flags.
+The packages installed from `apt-get` are likely to be built with newer ABI, which
+may incur compatibility issues on newer Linux versions.
 
 **Using a virtual machine:** If you use another OS, can't make system-wide
 configuration changes, or just want to test zsim without modifying your system,
@@ -185,9 +192,9 @@ zsim. First, it needs to allow for large shared memory segments. Second, for
 Pin to work, it must allow a process to attach to any other from the user, not
 just to a child. Use sysctl to ensure that `kernel.shmmax=1073741824` (or larger)
 and `kernel.yama.ptrace_scope=0`. zsim has mainly been used in
-Ubuntu 11.10, 12.04, 12.10, 13.04, and 13.10, but it should work in other Linux
-distributions. Using it in OSs other than Linux (e.g,, OS X, Windows) will be
-non-trivial, since the user-level virtualization subsystem has deep ties into
+Ubuntu 11.10, 12.04, 12.10, 13.04, 13.10, 14.04, and 18.04, but it should work in
+other Linux distributions. Using it in OSs other than Linux (e.g,, OS X, Windows)
+will be non-trivial, since the user-level virtualization subsystem has deep ties into
 the Linux syscall interface.
 
 **Stats:** The simulator outputs periodic, eventual and end-of-sim stats files.
