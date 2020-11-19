@@ -24,9 +24,11 @@
  * this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bithacks.h"
 #include "cpuenum.h"
 #include "log.h"
 #include "virt/common.h"
+#include "scheduler.h"
 
 // SYS_getcpu
 
@@ -71,25 +73,66 @@ PostPatchFn PatchGetcpu(PrePatchArgs args) {
 
 PostPatchFn PatchSchedGetaffinity(PrePatchArgs args) {
     return [](PostPatchArgs args) {
+        // On success, the syscall returns the size of cpumask_t in bytes.
+        const int maxSize = MAX(1024, (1 << (ilog2(zinfo->numCores) + 1))) / 8;
+        PIN_SetSyscallNumber(args.ctxt, args.std, maxSize);
+        uint32_t linuxTid = PIN_GetSyscallArgument(args.ctxt, args.std, 0);
+        uint32_t tid = (linuxTid == 0 ? args.tid : zinfo->sched->getTidFromLinuxTid(linuxTid));
+        if (tid == (uint32_t)-1) {
+            warn("SYS_sched_getaffinity cannot find thread with OS id %u, ignored", linuxTid);
+            return PPA_NOTHING;
+        }
         uint32_t size = PIN_GetSyscallArgument(args.ctxt, args.std, 1);
+        if (size*8 < cpuenumNumCpus(procIdx)) {
+            // CPU set size is not large enough. Return EINVAL.
+            PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)-EINVAL);
+            return PPA_NOTHING;
+        }
         cpu_set_t* set = (cpu_set_t*)PIN_GetSyscallArgument(args.ctxt, args.std, 2);
         if (set) { //TODO: use SafeCopy, this can still segfault
             CPU_ZERO_S(size, set);
-            std::vector<bool> cpumask = cpuenumMask(procIdx);
+            std::vector<bool> cpumask = cpuenumMask(procIdx, tid);
             for (uint32_t i = 0; i < MIN(cpumask.size(), size*8 /*size is in bytes, supports 1 cpu/bit*/); i++) {
                 if (cpumask[i]) CPU_SET_S(i, (size_t)size, set);
             }
         }
-        info("[%d] Post-patching SYS_sched_getaffinity size %d cpuset %p", args.tid, size, set);
+        info("[%d] Post-patching SYS_sched_getaffinity size %d cpuset %p", tid, size, set);
         return PPA_NOTHING;
     };
 }
 
 PostPatchFn PatchSchedSetaffinity(PrePatchArgs args) {
+    uint32_t linuxTid = PIN_GetSyscallArgument(args.ctxt, args.std, 0);
+    uint32_t tid = (linuxTid == 0 ? args.tid : zinfo->sched->getTidFromLinuxTid(linuxTid));
+    if (tid == (uint32_t)-1) {
+        warn("SYS_sched_getaffinity cannot find thread with OS id %u, ignored!", linuxTid);
+        PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT) SYS_getpid);  // squash
+        return [](PostPatchArgs args) {
+            PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)-EPERM);
+            return PPA_NOTHING;
+        };
+    }
+    uint32_t size = PIN_GetSyscallArgument(args.ctxt, args.std, 1);
+    if (size*8 < cpuenumNumCpus(procIdx)) {
+        // CPU set size is not large enough. Return EINVAL.
+        return [](PostPatchArgs args) {
+            PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)-EINVAL);
+            return PPA_NOTHING;
+        };
+    }
+    cpu_set_t* set = (cpu_set_t*)PIN_GetSyscallArgument(args.ctxt, args.std, 2);
+    info("[%d] Pre-patching SYS_sched_setaffinity size %d cpuset %p", tid, size, set);
+    if (set) {
+        std::vector<bool> cpumask(cpuenumNumCpus(procIdx));
+        for (uint32_t i = 0; i < MIN(cpumask.size(), size*8 /*size is in bytes, supports 1 cpu/bit*/); i++) {
+            cpumask[i] = CPU_ISSET_S(i, (size_t)size, set);
+        }
+        cpuenumUpdateMask(procIdx, tid, cpumask);
+    }
     PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT) SYS_getpid);  // squash
     return [](PostPatchArgs args) {
-        PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)-EPERM);  // make it a proper failure
-        return PPA_NOTHING;
+        PIN_SetSyscallNumber(args.ctxt, args.std, (ADDRINT)0);  // return 0 on success
+        return PPA_USE_JOIN_PTRS;
     };
 }
 

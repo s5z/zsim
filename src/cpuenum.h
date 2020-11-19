@@ -29,6 +29,7 @@
 /* Small routines for core enumeration */
 
 #include "process_tree.h"
+#include "scheduler.h"
 #include "zsim.h"
 
 inline uint32_t cpuenumNumCpus(uint32_t pid) {
@@ -43,17 +44,51 @@ inline uint32_t cpuenumNumCpus(uint32_t pid) {
     }
 }
 
-inline std::vector<bool> cpuenumMask(uint32_t pid) {
+// Returns the per-thread cpu mask (from scheduler), taking care of per-process cpuenum.
+inline std::vector<bool> cpuenumMask(uint32_t pid, uint32_t tid) {
     std::vector<bool> res;
+    const g_vector<bool>& processMask = zinfo->procArray[pid]->getMask();
+    const g_vector<bool>& schedMask = zinfo->sched->getMask(pid, tid);
     if (zinfo->perProcessCpuEnum) {
         res.resize(cpuenumNumCpus(pid));
-        for (uint32_t i = 0; i < res.size(); i++) res[i] = true;
+        uint32_t perProcCid = 0;
+        for (uint32_t i = 0; i < schedMask.size(); i++) {
+            if (processMask[i]) {
+                res[perProcCid] = schedMask[i];
+                perProcCid++;
+            }
+        }
+        assert(perProcCid == cpuenumNumCpus(pid));
     } else {
-        const g_vector<bool>& mask = zinfo->procArray[pid]->getMask();
-        res.resize(mask.size());
-        for (uint32_t i = 0; i < res.size(); i++) res[i] = mask[i];
+        res.resize(schedMask.size());
+        for (uint32_t i = 0; i < res.size(); i++) res[i] = schedMask[i];
     }
     return res;
+}
+
+// Update the per-thread cpu mask, taking care of per-process cpuenum.
+// Consistent with cpuenumMask().
+inline void cpuenumUpdateMask(uint32_t pid, uint32_t tid, const std::vector<bool>& mask) {
+    const g_vector<bool>& processMask = zinfo->procArray[pid]->getMask();
+    g_vector<bool> schedMask(zinfo->numCores, false);
+    if (zinfo->perProcessCpuEnum) {
+        // Given mask is per-process enumerated.
+        uint32_t perProcCid = 0;
+        for (uint32_t i = 0; i < schedMask.size() && perProcCid < mask.size(); i++) {
+            if (processMask[i]) {
+                schedMask[i] = mask[perProcCid];
+                perProcCid++;
+            }
+        }
+    } else {
+        for (uint32_t i = 0; i < schedMask.size() && i < mask.size(); i++) {
+            if (mask[i]) {
+                assert_msg(processMask[i], "Thread mask must be within the process mask.");
+                schedMask[i] = true;
+            }
+        }
+    }
+    zinfo->sched->updateMask(pid, tid, schedMask);
 }
 
 // Returns the cpu that this cid is scheduled on, taking care of per-process cpuenum
