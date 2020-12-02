@@ -72,6 +72,20 @@ Decoder::Instr::Instr(INS _ins) : ins(_ins), numLoads(0), numInRegs(0), numOutRe
             reg = REG_FullRegName(reg);  // eax -> rax, etc; o/w we'd miss a bunch of deps!
             if (read) inRegs[numInRegs++] = reg;
             if (write) outRegs[numOutRegs++] = reg;
+        } else if (INS_OperandIsAddressGenerator(ins, op)) {
+            // address generators occur in LEAs & satisfy neither IsMemory nor,
+            // more infuriatingly, IsReg. despite being one operand, address
+            // generators may introduce dependencies on up to two registers: the
+            // base and index registers
+            assert(INS_OperandReadOnly(ins, op));
+
+            // base register; optional
+            REG reg = INS_OperandMemoryBaseReg(ins, op);
+            if (REG_valid(reg)) inRegs[numInRegs++] = REG_FullRegName(reg);
+
+            // index register; optional
+            reg = INS_OperandMemoryIndexReg(ins, op);
+            if (REG_valid(reg)) inRegs[numInRegs++] = REG_FullRegName(reg);
         }
     }
 
