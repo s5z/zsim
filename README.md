@@ -50,7 +50,7 @@ External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0`
 
 1. Clone a fresh copy of the git zsim repository (`git clone <path to zsim repo>`).
 
-2. Download Pin, http://www.pintool.org . Tested with Pin 2.8+ on an x86-64
+2. Download Pin 2.14 [here](https://software.intel.com/sites/landingpage/pintool/downloads/pin-2.14-71313-gcc.4.4.7-linux.tar.gz). Tested with Pin 2.8+ on an x86-64
    architecture. Compiler flags are set up for Pin 2.9 on x86-64. To get flags
    for other versions, examine the Pin makefile or derive from sample pintools.
    Set the PINPATH environment variable to Pin's base directory.
