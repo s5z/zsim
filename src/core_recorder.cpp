@@ -140,8 +140,10 @@ void CoreRecorder::recordAccess(uint64_t startCycle) {
         //tr.endEvent not linked to anything, it's a PUT
     }
 
-    origPrevResp->produceCrossings(&eventRecorder);
-    eventRecorder.getCrossingStack().clear();
+    if (zinfo->numDomains > 1) {
+        origPrevResp->produceCrossings(&eventRecorder);
+        eventRecorder.getCrossingStack().clear();
+    }
 }
 
 

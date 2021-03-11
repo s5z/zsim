@@ -72,6 +72,45 @@ Decoder::Instr::Instr(INS _ins) : ins(_ins), numLoads(0), numInRegs(0), numOutRe
             reg = REG_FullRegName(reg);  // eax -> rax, etc; o/w we'd miss a bunch of deps!
             if (read) inRegs[numInRegs++] = reg;
             if (write) outRegs[numOutRegs++] = reg;
+        } else if (INS_OperandIsAddressGenerator(ins, op)) {
+            // address generators occur in LEAs & satisfy neither IsMemory nor,
+            // more infuriatingly, IsReg. despite being one operand, address
+            // generators may introduce dependencies on up to two registers: the
+            // base and index registers
+            assert(INS_OperandReadOnly(ins, op));
+
+            // base register; optional
+            REG reg = INS_OperandMemoryBaseReg(ins, op);
+            if (REG_valid(reg)) inRegs[numInRegs++] = REG_FullRegName(reg);
+
+            // index register; optional
+            reg = INS_OperandMemoryIndexReg(ins, op);
+            if (REG_valid(reg)) inRegs[numInRegs++] = REG_FullRegName(reg);
+        } else if (INS_OperandIsImmediate(ins, op)
+                   || INS_OperandIsBranchDisplacement(ins, op)) {
+            // No need to do anything for immediate operands
+        } else if (INS_OperandReg(ins, op) == REG_X87) {
+            // We don't model x87 accurately in general
+            //reportUnhandledCase(*this, "Instr");
+        } else {
+            assert(INS_OperandIsImplicit(ins, op));
+            // Pin classifies the use and update of RSP in various stack
+            // operations as "implicit" operands. Although they contribute to
+            // OperandCount, OperandIsReg surprisingly returns false.
+            // Let's not bother to add RSP to inRegs or outRegs here,
+            // since we won't want to consider it as an ordinary register operand.
+            // (See handling of stack operations in Decoder::decodeInstr.)
+            //
+            // Even more weirdly, the use and update of RSI and RDI in MOVSB
+            // and similar string-handling instructions are considered
+            // implicit operands for which OperandIsReg returns false.
+            // Oh well, with ERMSB in Ivy Bridge and later,
+            // who knows what's the right way to model these things anyway?
+
+            // [victory] I wish these assertion weren't true, so we could
+            //           cleanly check what the implicit register operand is.
+            assert(!REG_valid(INS_OperandReg(ins, op)));
+            assert(!REG_valid(INS_OperandMemoryBaseReg(ins, op)));
         }
     }
 

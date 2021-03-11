@@ -111,7 +111,7 @@ class SlabAlloc {
                 ptr = curSlab->alloc(sz);
                 assert(ptr);
             }
-            assert((((uintptr_t)ptr) & SLAB_MASK) == (uintptr_t)curSlab)
+            assert((((uintptr_t)ptr) & SLAB_MASK) == (uintptr_t)curSlab);
             return ptr;
         }
 

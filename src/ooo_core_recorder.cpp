@@ -268,8 +268,10 @@ void OOOCoreRecorder::recordAccess(uint64_t curCycle, uint64_t dispatchCycle, ui
     }
 
     // For multi-domain
-    lastEvProduced->produceCrossings(&eventRecorder);
-    eventRecorder.getCrossingStack().clear();
+    if (zinfo->numDomains > 1) {
+        lastEvProduced->produceCrossings(&eventRecorder);
+        eventRecorder.getCrossingStack().clear();
+    }
 }
 
 
