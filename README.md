@@ -44,13 +44,13 @@ software, and that you send us a citation of your work.
 Setup
 -----
 
-External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0`
+External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0(libelf-dev)`
 
 **Natively:** If you use a relatively recent Linux distribution:
 
 1. Clone a fresh copy of the git zsim repository (`git clone <path to zsim repo>`).
 
-2. Download Pin, http://www.pintool.org . Tested with Pin 2.8+ on an x86-64
+2. Download Pin, from [here](https://software.intel.com/content/www/us/en/develop/articles/pin-a-binary-instrumentation-tool-downloads.html) . Tested with Pin 2.8+ on an x86-64
    architecture. Compiler flags are set up for Pin 2.9 on x86-64. To get flags
    for other versions, examine the Pin makefile or derive from sample pintools.
    Set the PINPATH environment variable to Pin's base directory.
@@ -63,22 +63,33 @@ External dependencies: `gcc >=4.6, pin, scons, libconfig, libhdf5, libelfg0`
 3. zsim requires some additional libraries. If they are not installed in your
    system, you will need to download and build them:
 
-  3.1 libconfig, http://www.hyperrealm.com/libconfig. You may use the system's
+  3.1 libconfig, hhttp://hyperrealm.github.io/libconfig/. You may use the system's
       package if it's recent enough, or build your own. To install locally, untar,
       run `./configure --prefix=<libconfig install path> && make install`.  Then
       define the env var `LIBCONFIGPATH=<libconfig install path>`.
 
   3.2 libhdf5, http://www.hdfgroup.org (v1.8.4 path 1 or higher), and libelfg0.
       The SConstruct file assumes these are installed in the system.
+      
+      ```
+            $ cd hdf5-X.Y.Z
+            $ ./configure --prefix=<install path>
+            $ make
+            $ make check                # run test suite.
+            $ make install
+            $ make check-install        # verify installation.
+      ```
+  
+  3.3 Install libelfg0, an ELF object file access library.
 
-  3.3 (OPTIONAL) polarssl (currently used just for their SHA-1 hash function),
+  3.4 (OPTIONAL) polarssl (currently used just for their SHA-1 hash function),
       http://www.polarssl.org Install locally as in 3.1 and define the env var
       `POLARSSLPATH=<polarssl install path>`.
       
       NOTE: You may need to add `-fPIC` to the Makefile's C(PP/XX)FLAGS depending
       on the version.
 
-  3.4 (OPTIONAL) DRAMSim2 for main memory simulation. Build locally and define
+  3.5 (OPTIONAL) DRAMSim2 for main memory simulation. Build locally and define
       the env var DRAMSIMPATH as in 3.1 and 3.3.
 
 4. In some distributions you may need to make minor changes to the host
