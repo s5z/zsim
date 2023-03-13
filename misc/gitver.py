@@ -11,4 +11,4 @@ shstat = dfstat.replace(" files changed", "fc").replace(" file changed", "fc") \
                .replace(" deletions(-)", "-").replace(" deletion(-)", "-") \
                .replace(",", "")
 diff = "clean" if len(dfstat) == 0 else shstat +  " " + dfhash
-print ":".join([branch, revnum, rshort, diff])
+print(":".join([branch, revnum, rshort, diff]))

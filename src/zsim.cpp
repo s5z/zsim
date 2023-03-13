@@ -29,7 +29,7 @@
 #include "zsim.h"
 #include <algorithm>
 #define _SIGNAL_H
-#include <bits/signum.h>
+#include <signum.h>
 #undef _SIGNAL_H
 #include <dlfcn.h>
 #include <execinfo.h>
