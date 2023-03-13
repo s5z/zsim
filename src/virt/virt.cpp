@@ -91,6 +91,16 @@ void VirtSyscallEnter(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, const c
         return;
     }
 
+    // glibc version 2.34+ uses the clone3 syscall, but will fallback to clone
+    // if errno is ENOSYS.  So pretend to fail with this errno.  To produce
+    // portable binaries, do this even if compiling on a machine where
+    // SYS_clone3 is undefined.
+    if (syscall == 435/*SYS_clone3*/) {
+        PIN_SetContextReg(ctxt, REG_RAX, -ENOSYS);
+        PIN_SetContextReg(ctxt, REG_INST_PTR, PIN_GetContextReg(ctxt, REG_INST_PTR) + 2);
+        return;
+    }
+
     if (syscall >= MAX_SYSCALLS) {
         warn("syscall %d out of range", syscall);
         postPatchFunctions[tid] = NullPostPatch;
