@@ -243,6 +243,12 @@ class Scheduler : public GlobAlloc, public Callee {
                 futex_lock(&schedLock);
             }
 
+	    // jz: wake up sleeping threads to avoid deadlock
+            if (th->state == SLEEPING) {
+                sleepQueue.remove(th);
+                th->state = BLOCKED;
+	        }
+            
             //dsm: Added this check; the normal sequence is leave, finish, but with fastFwd you never know
             if (th->state == RUNNING) {
                 warn("RUNNING thread %d (cid %d) called finish(), trying leave() first", tid, th->cid);
