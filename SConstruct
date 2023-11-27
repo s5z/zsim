@@ -8,7 +8,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
     ''' Build the simulator with a specific base buid dir and config type'''
 
     buildDir = joinpath(dir, type)
-    print "Building " + type + " zsim at " + buildDir
+    print("Building " + type + " zsim at " + buildDir)
 
     env = Environment(ENV = os.environ, tools = ['default', 'textfile'])
     env["CPPFLAGS"] = cppFlags
@@ -37,7 +37,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
     if "PINPATH" in os.environ:
         PINPATH = os.environ["PINPATH"]
     else:
-       print "ERROR: You need to define the $PINPATH environment variable with Pin's path"
+       print("ERROR: You need to define the $PINPATH environment variable with Pin's path")
        sys.exit(1)
 
     ROOT = Dir('.').abspath
@@ -46,8 +46,10 @@ def buildSim(cppFlags, dir, type, pgo=None):
     # NOTE (dsm 10 Jan 2013): Tested with Pin 2.10 thru 2.12 as well
     # NOTE: Original Pin flags included -fno-strict-aliasing, but zsim does not do type punning
     # NOTE (dsm 16 Apr 2015): Update flags code to support Pin 2.14 while retaining backwards compatibility
-    env["CPPFLAGS"] += " -g -std=c++0x -Wall -Wno-unknown-pragmas -fomit-frame-pointer -fno-stack-protector"
+    env["CPPFLAGS"] += " -g -std=c++0x -Wall -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-function -Wno-catch-value -fomit-frame-pointer -fno-stack-protector"
     env["CPPFLAGS"] += " -MMD -DBIGARRAY_MULTIPLIER=1 -DUSING_XED -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX"
+    # NOTE (yyf 17 Sep 2020): Enforce to use older ABI when compiled with gcc-5 or newer.
+    env["CPPFLAGS"] += " -fabi-version=2 -D_GLIBCXX_USE_CXX11_ABI=0"
 
     # Pin 2.12+ kits have changed the layout of includes, detect whether we need
     # source/include/ or source/include/pin/
@@ -111,6 +113,7 @@ def buildSim(cppFlags, dir, type, pgo=None):
     env["LIBS"] = ["config++"]
 
     env["LINKFLAGS"] = ""
+    env["RPATH"] = []
 
     if useIcc:
         # icc libs
@@ -123,6 +126,11 @@ def buildSim(cppFlags, dir, type, pgo=None):
         env["LIBPATH"] += [joinpath(LIBCONFIGPATH, "lib")]
         env["CPPPATH"] += [joinpath(LIBCONFIGPATH, "include")]
 
+    if "HDF5PATH" in os.environ:
+        HDF5PATH = os.getenv("HDF5PATH")
+        env["CPPPATH"] += [joinpath(HDF5PATH, "include/")]
+        env["LIBPATH"] += [joinpath(HDF5PATH, "lib/")]
+        env["RPATH"]   += [joinpath(HDF5PATH, "lib/")]
 
     if "POLARSSLPATH" in os.environ:
         POLARSSLPATH = os.environ["POLARSSLPATH"]
@@ -196,11 +204,11 @@ pgoPhase = GetOption('pgoPhase')
 # when you move the files. Check the repo for a version that tries this.
 if GetOption('pgoBuild'):
     for type in buildTypes:
-        print "Building PGO binary"
+        print("Building PGO binary")
         root = Dir('.').abspath
         testsDir = joinpath(root, "tests")
         trainCfgs = [f for f in os.listdir(testsDir) if f.startswith("pgo")]
-        print "Using training configs", trainCfgs
+        print("Using training configs", trainCfgs)
 
         baseDir = joinpath(baseBuildDir, "pgo-" + type)
         genCmd = "scons -j16 --pgoPhase=generate-" + type

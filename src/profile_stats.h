@@ -58,7 +58,7 @@ class ClockStat : public ScalarStat {
         void end() {
             assert(startNs);
             uint64_t endNs = getNs();
-            assert(endNs >= startNs)
+            assert(endNs >= startNs);
             totalNs += (endNs - startNs);
             startNs = 0;
         }
@@ -91,6 +91,8 @@ class TimeBreakdownStat : public VectorCounter {
         //I need to define this even though it is completely unnecessary, but only if I override init. gcc bug or C++ oddity?
         virtual void init(const char* name, const char* desc, uint32_t size, const char** names) {
             VectorCounter::init(name, desc, size, names); //will call our init(name, desc, size)
+            curState = 0;
+            startNs = getNs();
         }
 
         void transition(uint32_t newState) {

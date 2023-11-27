@@ -28,7 +28,9 @@
 
 #include "zsim.h"
 #include <algorithm>
-#include <bits/signum.h>
+#define _SIGNAL_H
+#include <signum.h>
+#undef _SIGNAL_H
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <fstream>

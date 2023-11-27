@@ -74,6 +74,33 @@ void VirtInit() {
 // Dispatch methods
 void VirtSyscallEnter(THREADID tid, CONTEXT *ctxt, SYSCALL_STANDARD std, const char* patchRoot, bool isNopThread) {
     uint32_t syscall = PIN_GetSyscallNumber(ctxt, std);
+
+    // glibc version 2.28+, if built with GCC's -fcf-protection, will have
+    // init_cpu_features() (which runs early on during the execution of any
+    // process) attempt to call the nonexisting ARCH_CET_STATUS (0x3001)
+    // subfunction of arch_prctl.  See:
+    // https://sourceware.org/git/?p=glibc.git;a=commit;h=394df3815e8ceec750fd06583eee4896174ce808
+    // This became the default in Ubuntu 19.10+.  See:
+    // https://wiki.ubuntu.com/ToolChain/CompilerFlags#A-fcf-protection
+    // Pin v2.14 crashes when it sees this unexpected arch_prctl subfunction.
+    // Avoid the crash by just pretending to execute the syscall instruction
+    // while skipping over it.
+    if (syscall == SYS_arch_prctl && PIN_GetContextReg(ctxt, REG_RDI) == 0x3001) {
+        PIN_SetContextReg(ctxt, REG_INST_PTR, PIN_GetContextReg(ctxt, REG_INST_PTR) + 2);
+        PIN_SetContextReg(ctxt, REG_RAX, -1UL);
+        return;
+    }
+
+    // glibc version 2.34+ uses the clone3 syscall, but will fallback to clone
+    // if errno is ENOSYS.  So pretend to fail with this errno.  To produce
+    // portable binaries, do this even if compiling on a machine where
+    // SYS_clone3 is undefined.
+    if (syscall == 435/*SYS_clone3*/) {
+        PIN_SetContextReg(ctxt, REG_RAX, -ENOSYS);
+        PIN_SetContextReg(ctxt, REG_INST_PTR, PIN_GetContextReg(ctxt, REG_INST_PTR) + 2);
+        return;
+    }
+
     if (syscall >= MAX_SYSCALLS) {
         warn("syscall %d out of range", syscall);
         postPatchFunctions[tid] = NullPostPatch;

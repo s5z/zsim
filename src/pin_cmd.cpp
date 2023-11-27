@@ -66,6 +66,7 @@ PinCmd::PinCmd(Config* conf, const char* configFile, const char* outputDir, uint
     wordfree(&p);
 
     //Load tool
+    args.push_back("-ifeellucky"); //bypass kernel version check
     args.push_back("-t");
     args.push_back(zsimPath);
 
