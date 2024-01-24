@@ -153,11 +153,18 @@ void Scheduler::watchdogThreadFunc() {
 
                     uint64_t pc = fl->pc;
                     do {
+                        // NOTE(gaomy): to avoid race with join() if a thread is not actually blocked but just waiting too long (e.g., heavily loaded host).
+                        // Because we finish fake leave and release lock before doing actual leave, the join could happen in between,
+                        // when we haven't done leave.
+                        th->flWord = 1;
                         finishFakeLeave(th);
 
                         futex_unlock(&schedLock);
                         leave(pid, tid, cid);
                         futex_lock(&schedLock);
+
+                        th->flWord = 0;
+                        syscall(SYS_futex, &th->flWord, FUTEX_WAKE, 1, nullptr, nullptr, 0);
 
                         // also do real leave for other threads blocked at the same pc ...
                         fl = fakeLeaves.front();
@@ -281,8 +288,9 @@ void Scheduler::syscallLeave(uint32_t pid, uint32_t tid, uint32_t cid, uint64_t 
     assert_msg(pid < blockingSyscalls.size(), "%d >= %ld?", pid, blockingSyscalls.size());
 
     bool blacklisted = blockingSyscalls[pid].find(pc) != blockingSyscalls[pid].end();
-    if (blacklisted || th->markedForSleep) {
-        DEBUG_FL("%s @ 0x%lx calling leave(), reason: %s", GetSyscallName(syscallNumber), pc, blacklisted? "blacklist" : "sleep");
+    if (blacklisted || th->markedForSleep || !th->mask[cid]) {
+        // (mgao): thread mask may be updated by SYS_sched_setaffinity syscall, in which case it must do true leave.
+        DEBUG_FL("%s @ 0x%lx calling leave(), reason: %s", GetSyscallName(syscallNumber), pc, blacklisted? "blacklist" : (th->markedForSleep ? "sleep" : "affinity"));
         futex_unlock(&schedLock);
         leave(pid, tid, cid);
     } else {
@@ -397,6 +405,14 @@ void Scheduler::finishFakeLeave(ThreadInfo* th) {
 }
 
 void Scheduler::waitUntilQueued(ThreadInfo* th) {
+    if (th->linuxPid == syscall(SYS_getpid) && th->linuxTid == syscall(SYS_gettid)) {
+        // We are waiting for ourselves. Return immediately.
+        // This could happen when one thread is marked for sleep and gets into
+        // leave() and calls bar.leave(), which triggers end of phase and calls
+        // callback(), which wakes up sleeping threads, including itself, whose
+        // deadline is met.
+        return;
+    }
     uint64_t startNs = getNs();
     uint32_t sleepUs = 1;
     while(!IsSleepingInFutex(th->linuxPid, th->linuxTid, (uintptr_t)&schedLock)) {
