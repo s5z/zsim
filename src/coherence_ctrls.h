@@ -57,8 +57,8 @@ class CC : public GlobAlloc {
         virtual uint64_t processInv(const InvReq& req, int32_t lineId, uint64_t startCycle) = 0;
 
         //Repl policy interface
-        virtual uint32_t numSharers(uint32_t lineId) = 0;
-        virtual bool isValid(uint32_t lineId) = 0;
+        virtual uint32_t numSharers(uint32_t lineId) const = 0;
+        virtual bool isValid(uint32_t lineId) const = 0;
 };
 
 
@@ -163,14 +163,14 @@ class MESIBottomCC : public GlobAlloc {
         }
 
         /* Replacement policy query interface */
-        inline bool isValid(uint32_t lineId) {
+        inline bool isValid(uint32_t lineId) const {
             return array[lineId] != I;
         }
 
         //Could extend with isExclusive, isDirty, etc, but not needed for now.
 
     private:
-        uint32_t getParentId(Address lineAddr);
+        uint32_t getParentId(Address lineAddr) const;
 };
 
 
@@ -188,11 +188,11 @@ class MESITopCC : public GlobAlloc {
                 sharers.reset();
             }
 
-            bool isEmpty() {
+            bool isEmpty() const {
                 return numSharers == 0;
             }
 
-            bool isExclusive() {
+            bool isExclusive() const {
                 return (numSharers == 1) && (exclusive);
             }
         };
@@ -236,7 +236,7 @@ class MESITopCC : public GlobAlloc {
         }
 
         /* Replacement policy query interface */
-        inline uint32_t numSharers(uint32_t lineId) {
+        inline uint32_t numSharers(uint32_t lineId) const {
             return array[lineId].numSharers;
         }
 
@@ -403,8 +403,8 @@ class MESICC : public CC {
         }
 
         //Repl policy interface
-        uint32_t numSharers(uint32_t lineId) {return tcc->numSharers(lineId);}
-        bool isValid(uint32_t lineId) {return bcc->isValid(lineId);}
+        uint32_t numSharers(uint32_t lineId) const {return tcc->numSharers(lineId);}
+        bool isValid(uint32_t lineId) const {return bcc->isValid(lineId);}
 };
 
 // Terminal CC, i.e., without children --- accepts GETS/X, but not PUTS/X
@@ -491,8 +491,8 @@ class MESITerminalCC : public CC {
         }
 
         //Repl policy interface
-        uint32_t numSharers(uint32_t lineId) {return 0;} //no sharers
-        bool isValid(uint32_t lineId) {return bcc->isValid(lineId);}
+        uint32_t numSharers(uint32_t lineId) const {return 0;} //no sharers
+        bool isValid(uint32_t lineId) const {return bcc->isValid(lineId);}
 };
 
 #endif  // COHERENCE_CTRLS_H_
